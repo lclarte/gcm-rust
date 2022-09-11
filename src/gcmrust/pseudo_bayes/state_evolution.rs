@@ -3,6 +3,7 @@ use peroxide::numerical::*;
 use crate::gcmrust::pseudo_bayes::pseudo_bayes_functions;
 
 static FT_QUAD_BOUND : f64 = 5.0;
+static MAX_ITER_PB   : i16 = 1000;
 
 fn integrate_for_mhat(m : f64, q : f64, v : f64, vstar : f64, beta : f64, data_model : &String) -> f64 {
     let mut somme : f64 = 0.0;
@@ -140,9 +141,10 @@ pub fn iterate_se(m : f64, q : f64, v : f64, alpha : f64, beta : f64, delta : f6
 pub fn state_evolution(alpha : f64, beta : f64, delta : f64, gamma : f64, kappa1 : f64, kappastar : f64, lambda : f64, rho : f64, data_model : &String, se_tolerance : f64, relative_tolerance : bool) -> (f64, f64, f64) {
     let (mut m, mut q, mut v) = (0.01, 0.01, 0.99);
     let (mut prev_m, mut prev_q, mut prev_v) : (f64, f64, f64);
-    let mut difference = 1.0;
+    let mut difference    = 1.0;
+    let mut counter : i16 = 0;
     
-    while difference > se_tolerance {
+    while difference > se_tolerance && counter < MAX_ITER_PB {
         (prev_m, prev_q, prev_v) = (m, q, v);
         (m, q, v) = iterate_se(m, q, v, alpha, beta, delta, gamma, kappa1, kappastar, lambda, rho, data_model);
         // println!("pb m, q, v = {}, {}, {}", m, q, v);
@@ -152,6 +154,10 @@ pub fn state_evolution(alpha : f64, beta : f64, delta : f64, gamma : f64, kappa1
         else {
             difference = (m - prev_m).abs() + (q - prev_q).abs() + (v - prev_v).abs();
         }
+        counter += 1;
+    }
+    if counter == MAX_ITER_PB {
+        println!("Reached MAX_ITER_PB in state evolution : last difference was {} / {}, relative tol. is {}", difference, se_tolerance, relative_tolerance);
     }
 
     return (m, q, v);

@@ -50,11 +50,11 @@ pub fn update_overlaps(mhat : f64, qhat : f64, vhat : f64, kappa1 : f64, kappast
 
 pub fn update_hatoverlaps(m : f64, q : f64, v : f64, alpha : f64, gamma : f64, rho : f64, delta : f64) -> (f64, f64, f64) {
     let sigma = rho - (m*m / q) + delta;
-    
+
     let im = integrals::integrate_for_mhat(m, q, v, sigma,);
     let iq = integrals::integrate_for_qhat(m, q, v, sigma);
     let iv = integrals::integrate_for_vhat(m, q, v, sigma);
-    
+
     let mhat = alpha * gamma.sqrt() * im / v;
     let vhat = alpha * ((1.0/v) - (1.0 / v.powi(2)) * iv);
     let qhat = alpha * iq/v.powi(2);
@@ -64,10 +64,9 @@ pub fn update_hatoverlaps(m : f64, q : f64, v : f64, alpha : f64, gamma : f64, r
 }
 
 pub fn iterate_se(m : f64, q : f64, v : f64, alpha : f64, delta : f64, gamma : f64, kappa1 : f64, kappastar : f64, lambda : f64, rho : f64) -> (f64, f64, f64) {
-    println!("m, q, v are {}, {}, {}", m, q, v);
     let (mhat, qhat, vhat) = update_hatoverlaps(m, q, v, alpha, gamma, rho, delta);
-    println!("mhat, qhat, vhat are {}, {}, {}", mhat, qhat, vhat);
-    return update_overlaps(mhat, qhat, vhat, kappa1, kappastar, gamma, lambda);
+    let (new_m, new_q, new_v) =  update_overlaps(mhat, qhat, vhat, kappa1, kappastar, gamma, lambda);
+    return (new_m, new_q, new_v)
 }
 
 pub fn state_evolution(alpha : f64, delta : f64, gamma : f64, kappa1 : f64, kappastar : f64, lambda : f64, rho : f64, se_tolerance : f64, relative_tolerance : bool) -> (f64, f64, f64) {
@@ -78,6 +77,9 @@ pub fn state_evolution(alpha : f64, delta : f64, gamma : f64, kappa1 : f64, kapp
     while difference > se_tolerance {
         (prev_m, prev_q, prev_v) = (m, q, v);
         (m, q, v) = iterate_se(m, q, v, alpha, delta, gamma, kappa1, kappastar, lambda, rho);
+        if m == f64::NAN || q == f64::NAN || v == f64::NAN {
+            panic!("One of the overlaps is NAN");
+        }
         if relative_tolerance {
             difference = (m - prev_m).abs() / m.abs() + (q - prev_q).abs() / q.abs() + (v - prev_v).abs() / v.abs();
         }
@@ -88,3 +90,5 @@ pub fn state_evolution(alpha : f64, delta : f64, gamma : f64, kappa1 : f64, kapp
 
     return (m, q, v);
 }
+
+// cd Code/EPFL/overparametrized-uncertainty/Code ; conda activate ml ; python -m experiments.amp_experiment
