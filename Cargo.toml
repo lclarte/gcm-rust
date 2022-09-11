@@ -1,0 +1,22 @@
+[package]
+name = "gcmrust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+peroxide = "0.30"
+statrs   = "*"
+optimize = "*"
+ndarray  = "*"
+simplers_optimization = "*"
+argmin   = "*"
+clap = { version = "3.2.20", features = ["derive"] }
+
+[target.aarch64-apple-darwin]
+rustflags = [
+  "-C", "link-arg=-undefined",
+  "-C", "link-arg=dynamic_lookup",
+]
+
+[profile.release]
+opt-level = 3
