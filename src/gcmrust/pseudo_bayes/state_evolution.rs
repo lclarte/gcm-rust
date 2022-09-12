@@ -1,81 +1,15 @@
-use std::f64::consts::PI;
-use peroxide::numerical::*;
-use crate::gcmrust::pseudo_bayes::pseudo_bayes_functions;
+use crate::gcmrust::pseudo_bayes::integrals;
 
-static FT_QUAD_BOUND : f64 = 5.0;
 static MAX_ITER_PB   : i16 = 1000;
-
-fn integrate_for_mhat(m : f64, q : f64, v : f64, vstar : f64, beta : f64, data_model : &String) -> f64 {
-    let mut somme : f64 = 0.0;
-    let bound : f64 = FT_QUAD_BOUND;
-    let teacher_dz0 : fn(f64, f64, f64) -> f64;
-    
-    if data_model == "logit" {
-        teacher_dz0 = pseudo_bayes_functions::logit_dz0;
-    }
-    else {
-        teacher_dz0 = pseudo_bayes_functions::probit_dz0;
-    }
-    let ys : [f64; 2] = [-1.0, 1.0];
-
-    for i in 0..2 {
-        let y = ys[i];
-        let integrand = |xi : f64| -> f64 { (- xi*xi / 2.0).exp() / (2.0 * PI).sqrt() * pseudo_bayes_functions::pseudobayes_f0(y, (q).sqrt()*xi, v, beta, bound) * teacher_dz0(y, m / (q).sqrt() * xi, vstar) };
-        somme = somme + integral::integrate(integrand, (-bound, bound), integral::Integral::G30K61(0.000001));
-    }
-    return somme;
-}
-
-fn integrate_for_qhat(m : f64, q : f64, v : f64, vstar : f64, beta : f64, data_model : &String) -> f64 {
-    let mut somme : f64 = 0.0;
-    let bound : f64 = FT_QUAD_BOUND;
-    let teacher_z0 : fn(f64, f64, f64) -> f64;
-    
-    if data_model == "logit" {
-        teacher_z0 = pseudo_bayes_functions::logit_z0;
-    }
-    else {
-        teacher_z0 = pseudo_bayes_functions::probit_z0;
-    }
-    let ys : [f64; 2] = [-1.0, 1.0];
-
-    for i in 0..2 {
-        let y = ys[i];
-        let integrand = |xi : f64| -> f64 { (- xi*xi / 2.0).exp() / (2.0 * PI).sqrt() * pseudo_bayes_functions::pseudobayes_f0(y, (q).sqrt()*xi, v, beta, bound).powi(2) * teacher_z0(y, m / (q).sqrt() * xi, vstar) };
-        somme += integral::integrate(integrand, (-bound, bound), integral::Integral::G30K61(0.000001));
-    }
-    return somme;
-}
-
-fn integrate_for_vhat(m : f64, q : f64, v : f64, vstar : f64, beta : f64, data_model : &String) -> f64 {
-    let mut somme : f64 = 0.0;
-    let bound : f64 = FT_QUAD_BOUND;
-    let teacher_z0 : fn(f64, f64, f64) -> f64;
-    
-    if data_model == "logit" {
-        teacher_z0 = pseudo_bayes_functions::logit_z0;
-    }
-    else {
-        teacher_z0 = pseudo_bayes_functions::probit_z0;
-    }
-    let ys : [f64; 2] = [-1.0, 1.0];
-
-    for i in 0..2 {
-        let y = ys[i];
-        let integrand = |xi : f64| -> f64 { (- xi*xi / 2.0).exp() / (2.0 * PI).sqrt() * pseudo_bayes_functions::pseudobayes_df0(y, (q).sqrt()*xi, v, beta, bound) * teacher_z0(y, m / (q).sqrt() * xi, vstar) };
-        somme = somme + integral::integrate(integrand, (-bound, bound), integral::Integral::G30K61(0.000001));
-    }
-    return somme;
-}
 
 // Functions only valid in the GCM model
 
 pub fn update_hatoverlaps(m : f64, q : f64, v : f64, alpha : f64, gamma : f64, rho : f64, delta : f64, beta : f64, data_model : &String) -> (f64, f64, f64) {
     let sigma = rho - (m*m / q) + delta;
     
-    let im = integrate_for_mhat(m, q, v, sigma, beta, data_model);
-    let iq = integrate_for_qhat(m, q, v, sigma, beta, data_model);
-    let iv = integrate_for_vhat(m, q, v, sigma, beta, data_model);
+    let im = integrals::integrate_for_mhat(m, q, v, sigma, beta, data_model);
+    let iq = integrals::integrate_for_qhat(m, q, v, sigma, beta, data_model);
+    let iv = integrals::integrate_for_vhat(m, q, v, sigma, beta, data_model);
     
     let mhat = alpha * (gamma).sqrt() * im;
     let qhat = alpha * iq;
@@ -138,7 +72,7 @@ pub fn iterate_se(m : f64, q : f64, v : f64, alpha : f64, beta : f64, delta : f6
     return update_overlaps(mhat, qhat, vhat, kappa1, kappastar, gamma, lambda * beta);
 }
 
-pub fn state_evolution(alpha : f64, beta : f64, delta : f64, gamma : f64, kappa1 : f64, kappastar : f64, lambda : f64, rho : f64, data_model : &String, se_tolerance : f64, relative_tolerance : bool) -> (f64, f64, f64) {
+pub fn state_evolution_gcm_probit(alpha : f64, beta : f64, delta : f64, gamma : f64, kappa1 : f64, kappastar : f64, lambda : f64, rho : f64, data_model : &String, se_tolerance : f64, relative_tolerance : bool) -> (f64, f64, f64) {
     let (mut m, mut q, mut v) = (0.01, 0.01, 0.99);
     let (mut prev_m, mut prev_q, mut prev_v) : (f64, f64, f64);
     let mut difference    = 1.0;
