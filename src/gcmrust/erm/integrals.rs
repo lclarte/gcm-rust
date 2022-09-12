@@ -166,7 +166,7 @@ pub mod logit_data_erm {
         for index in 0..2 {
             let y = ys[index];
             somme += integral::integrate(
-                |xi : f64| -> f64 {(-xi.powi(2) / 2.0).exp() / (2.0 * PI).sqrt() * logistic_channel::f0(y, q.sqrt() * xi, v) * logit::dz0(y, m / q.sqrt() * xi, vstar)}, 
+                |xi : f64| -> f64 {(- xi.powi(2) / 2.0).exp() / (2.0 * PI).sqrt() * logistic_channel::f0(y, q.sqrt() * xi, v) * logit::dz0(y, m / q.sqrt() * xi, vstar)}, 
                 (- ERM_QUAD_BOUND, ERM_QUAD_BOUND), integral::Integral::G30K61(GK_PARAMETER)
             );
         }

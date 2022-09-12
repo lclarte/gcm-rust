@@ -75,13 +75,13 @@ pub fn update_hatoverlaps_probit(m : f64, q : f64, v : f64, alpha : f64, gamma :
 pub fn update_hatoverlaps_logit(m : f64, q : f64, v : f64, alpha : f64, gamma : f64, rho : f64, delta : f64) -> (f64, f64, f64) {
     let sigma = rho - (m*m / q) + delta;
 
-    let im = integrals::logit_data_erm::integrate_for_mhat(m, q, v, sigma,);
+    let im = integrals::logit_data_erm::integrate_for_mhat(m, q, v, sigma);
     let iq = integrals::logit_data_erm::integrate_for_qhat(m, q, v, sigma);
     let iv = integrals::logit_data_erm::integrate_for_vhat(m, q, v, sigma);
 
-    let mhat = alpha * gamma.sqrt() * im / v;
-    let vhat = alpha * ((1.0/v) - (1.0 / v.powi(2)) * iv);
-    let qhat = alpha * iq/v.powi(2);
+    let mhat = alpha * gamma.sqrt() * im;
+    let vhat = - alpha * iv;
+    let qhat = alpha * iq ;
     
     return (mhat, qhat, vhat);
 
