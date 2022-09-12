@@ -57,6 +57,8 @@ pub fn update_overlaps_matching(mhat : f64, qhat : f64, vhat : f64, lambda : f64
     return (m, q, v);
 } 
 
+//
+
 pub fn update_hatoverlaps_probit(m : f64, q : f64, v : f64, alpha : f64, gamma : f64, rho : f64, delta : f64) -> (f64, f64, f64) {
     let sigma = rho - (m*m / q) + delta;
 
@@ -86,6 +88,8 @@ pub fn update_hatoverlaps_logit(m : f64, q : f64, v : f64, alpha : f64, gamma : 
     return (mhat, qhat, vhat);
 
 }
+
+//
 
 pub fn iterate_se_gcm_probit(m : f64, q : f64, v : f64, alpha : f64, delta : f64, gamma : f64, kappa1 : f64, kappastar : f64, lambda : f64, rho : f64) -> (f64, f64, f64) {
     let (mhat, qhat, vhat) = update_hatoverlaps_probit(m, q, v, alpha, gamma, rho, delta);
@@ -162,17 +166,27 @@ pub fn state_evolution_matching_probit(alpha : f64, delta : f64, lambda : f64, r
 }
 
 pub fn state_evolution_matching_logit(alpha : f64, delta : f64, lambda : f64, rho : f64, se_tolerance : f64, relative_tolerance : bool) -> (f64, f64, f64) {
+    if delta != 0.0 {
+        panic!("The noise should be 0 !");
+    }
     let (mut m, mut q, mut v) = (0.01, 0.01, 0.99);
     let (mut prev_m, mut prev_q, mut prev_v) : (f64, f64, f64);
     let mut difference = 1.0;
     let mut counter : i16 = 0;
+    let damping = 0.2_f64;
 
     while difference > se_tolerance && counter < MAX_ITER_ERM {
+        
         (prev_m, prev_q, prev_v) = (m, q, v);
         (m, q, v) = iterate_se_matching_logit(m, q, v, alpha, delta, lambda, rho);
+        m = damping * prev_m + (1.0 - damping) * m;
+        q = damping * prev_q + (1.0 - damping) * q;
+        v = damping * prev_v + (1.0 - damping) * v;
+
         if m == f64::NAN || q == f64::NAN || v == f64::NAN {
             panic!("One of the overlaps is NAN");
         }
+
         if relative_tolerance {
             difference = (m - prev_m).abs() / m.abs() + (q - prev_q).abs() / q.abs() + (v - prev_v).abs() / v.abs();
         }

@@ -1,51 +1,72 @@
 use statrs::function::*;
+extern crate optimization;
+use optimization::{Minimizer, GradientDescent, NumericalDifferentiation, Func};
 
-static PROX_TOLERANCE : f64 = 0.00000001;
-static PROX_EPSILON : f64 = 0.1;
-static MAX_ITER_PROX :  i16  = 1000;
+static PROX_TOLERANCE : f64 = 0.000001;
+static MAX_ITER_PROX :  i16  = 100;
 
 fn logistic_loss(z : f64) -> f64 {
     return (1.0 + (-z).exp()).ln();
 }
 
-fn logistic_loss_derivative(z : f64) -> f64 {
-    return - 1.0 / (1.0 + z.exp());
+fn logistic_loss_derivative(y : f64, z : f64) -> f64 {
+    if y * z > 0.0 {
+        let x = (- y * z).exp();
+        return - y * x / (1.0 + x);
+    }
+        
+    else {
+        return - y / ((y * z).exp() + 1.0);
+    }
+        
 }
 
-fn logistic_loss_second_derivative(z : f64) -> f64 {
-    if (z).abs() > 500.0 {
-        if z > 0.0{
-            return 0.25 * (-z).exp();
-        } 
-        else{
-            return 0.25 * z.exp();
-        }
-    } 
+fn logistic_loss_second_derivative(y : f64, z : f64) -> f64 {
+    if (y * z).abs() > 500.0 {
+        if y * z > 0.0 { return 1.0 / 4.0 * (-y * z).exp(); }
+        else { return 1.0 / 4.0 * (y * z).exp(); }       
+    }
     else {
-        return 1.0 / (4.0 * (z / 2.0).cosh().powi(2));
-    } 
+        return 1.0 / (4.0 * (y * z / 2.0).cosh().powi(2));
+    }
 }
 
 fn moreau_logistic_loss(x : f64, y : f64, omega : f64, v : f64) -> f64 {
-    return (x-omega).powi(2) / (2.0 * v) + logistic_loss(y*x);
+    return (x - omega).powi(2) / (2.0 * v) + logistic_loss(y*x);
 }
 
 fn moreau_logistic_loss_derivative(x : f64, y : f64, omega : f64, v : f64) -> f64 {
     // derivative with respect to x
-    return (x - omega) / v + y * logistic_loss_derivative(y * x);
+    return (x - omega) / v + logistic_loss_derivative(y, x);
 }
 
 fn proximal_logistic_loss(omega : f64, v : f64, y : f64) -> f64 {
-    let mut x : f64     = omega;
-    let mut old_x : f64 = 1.0;
+    
+    // Version of the code using third-party library
+    let minimizer = GradientDescent::new();
+    let to_minimize = NumericalDifferentiation::new(Func(|x: &[f64]| -> f64 {
+        moreau_logistic_loss(x[0], y, omega, v)
+    }));
+
+    let x_sol = minimizer.minimize(&to_minimize, vec![omega - 20.0 * v, omega + 20.0 * v]);
+    return x_sol.position[0];
+
+    /*
+
+    let mut x           = omega;
+    let mut old_x : f64 = omega + 1.0;
     let mut counter : i16 = 0;
+    let base_learning_rate : f64 = 1.0;
+
     while (old_x - x).abs() > PROX_TOLERANCE && counter < MAX_ITER_PROX {
         old_x = x;
         // do this for self-consistent equation ; x = - logistic_loss_derivative(y * x) * y * v + omega;
-        x = x - PROX_EPSILON * moreau_logistic_loss_derivative(x, y, omega, v);
+        x = x - (base_learning_rate / ((counter + 1) as f64).sqrt()) * moreau_logistic_loss_derivative(x, y, omega, v);
         counter += 1;
     }
     return x;
+
+    */
 }
 
 // define structure for proximal
@@ -140,13 +161,11 @@ pub mod logistic_channel {
 
     pub fn df0(y : f64, omega : f64, v : f64) -> f64 {
         let lambda_star  = proximal_logistic_loss(omega, v, y);
-        let dlambda_star = 1.0 / (1.0 + v * logistic_loss_second_derivative(lambda_star));
+        let dlambda_star = 1.0 / (1.0 + v * logistic_loss_second_derivative(y, lambda_star));
         return (dlambda_star - 1.0) / v;
     }
 
 }
-
-//
 
 pub mod logit_data_erm {
     
@@ -165,7 +184,7 @@ pub mod logit_data_erm {
 
         for index in 0..2 {
             let y = ys[index];
-            somme += integral::integrate(
+            somme = somme + integral::integrate(
                 |xi : f64| -> f64 {(- xi.powi(2) / 2.0).exp() / (2.0 * PI).sqrt() * logistic_channel::f0(y, q.sqrt() * xi, v) * logit::dz0(y, m / q.sqrt() * xi, vstar)}, 
                 (- ERM_QUAD_BOUND, ERM_QUAD_BOUND), integral::Integral::G30K61(GK_PARAMETER)
             );
@@ -179,7 +198,7 @@ pub mod logit_data_erm {
 
         for index in 0..2 {
             let y = ys[index];
-            somme += integral::integrate(
+            somme = somme + integral::integrate(
                 |xi : f64| -> f64 {(-xi.powi(2) / 2.0).exp() / (2.0 * PI).sqrt() * logistic_channel::f0(y, q.sqrt() * xi, v).powi(2) * logit::z0(y, m / q.sqrt() * xi, vstar)}, 
                 (- ERM_QUAD_BOUND, ERM_QUAD_BOUND), integral::Integral::G30K61(GK_PARAMETER)
             );
@@ -193,8 +212,8 @@ pub mod logit_data_erm {
 
         for index in 0..2 {
             let y = ys[index];
-            somme += integral::integrate(
-                |xi : f64| -> f64 {(-xi.powi(2) / 2.0).exp() / (2.0 * PI).sqrt() * logistic_channel::df0(y, q.sqrt() * xi, v).powi(2) * logit::z0(y, m / q.sqrt() * xi, vstar)}, 
+            somme = somme + integral::integrate(
+                |xi : f64| -> f64 {(-xi.powi(2) / 2.0).exp() / (2.0 * PI).sqrt() * logistic_channel::df0(y, q.sqrt() * xi, v) * logit::z0(y, m / q.sqrt() * xi, vstar)}, 
                 (- ERM_QUAD_BOUND, ERM_QUAD_BOUND), integral::Integral::G30K61(GK_PARAMETER)
             );
         }

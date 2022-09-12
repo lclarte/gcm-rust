@@ -12,6 +12,7 @@ simplers_optimization = "*"
 argmin   = "*"
 clap = { version = "3.2.20", features = ["derive"] }
 pyo3 = { version = "0.17.1", features = ["extension-module"] }
+optimization = "*"
 
 [lib]
 name = "gcmpyo3"
