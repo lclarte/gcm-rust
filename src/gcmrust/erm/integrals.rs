@@ -125,7 +125,7 @@ pub mod probit_data_erm {
     use peroxide::numerical::integral;
 
     static QUAD_BOUND : f64 = 10.0;
-    static GK_PARAMETER : f64 = 0.0001;
+    static GK_PARAMETER : f64 = 0.000001;
 
     pub fn integrate_for_vhat(m : f64, q : f64, v : f64, vstar : f64) -> f64 { 
         let i1 = integral::integrate(|xi : f64| -> f64 {f_vhat_plus(xi, m, q, v, vstar) * (-xi*xi / 2.0).exp() / (2.0 * PI).sqrt()}, (-QUAD_BOUND, QUAD_BOUND), integral::Integral::G30K61(GK_PARAMETER));
@@ -176,7 +176,7 @@ pub mod logit_data_erm {
     use crate::gcmrust::erm::integrals::*;
 
     static ERM_QUAD_BOUND : f64 = 10.0_f64;
-    static GK_PARAMETER   : f64 = 0.0001_f64;
+    static GK_PARAMETER   : f64 = 0.000001_f64;
 
     pub fn integrate_for_mhat(m : f64, q : f64, v : f64, vstar : f64) -> f64 { 
         let mut somme = 0.0_f64;

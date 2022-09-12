@@ -2,11 +2,12 @@ use peroxide::numerical::*;
 use std::f64::consts::PI;
 
 use crate::gcmrust::data_models;
+use crate::gcmrust::utility::kappas;
 
 static THRESHOLD_P : f64 = -10.0_f64;
 static THRESHOLD_L : f64 = -10.0_f64;
 static FT_QUAD_BOUND : f64 = 5.0;
-static GK_PARAMETER : f64 = 0.00001;
+static GK_PARAMETER : f64 = 0.000001;
 
 pub fn pseudobayes_p_out(x : f64, _beta : f64) -> f64 {
     if x > THRESHOLD_P {
@@ -163,4 +164,57 @@ pub fn integrate_for_vhat(m : f64, q : f64, v : f64, vstar : f64, beta : f64, da
         somme = somme + integral::integrate(integrand, (-bound, bound), integral::Integral::G30K61(GK_PARAMETER));
     }
     return somme;
+
 }
+
+// function to compute the evidence for a given beta, lambda
+
+pub fn psi_w_matching(mhat : f64, qhat : f64, vhat : f64, beta : f64, lambda : f64) -> f64 {
+    return - 0.5 * (beta * lambda + vhat).ln() + 0.5 * (mhat * mhat + qhat) / (beta * lambda + vhat);
+}
+
+pub fn psi_w_gcm(mhat : f64, qhat : f64, vhat : f64, beta : f64, gamma : f64, kappa1 : f64, kappastar : f64, lambda : f64) -> f64 {
+    let (kk1, kkstar) = (kappa1 * kappa1, kappastar * kappastar);
+    let to_integrate_1 = |x : f64| -> f64 {(beta * lambda + vhat * (kk1 * x + kkstar)).ln()};
+    let to_integrate_2 = |x : f64| -> f64 { (mhat * kk1 * x + qhat * (kk1 * x + kkstar)) / (beta * lambda + vhat * (kk1 * x + kkstar))} ;
+    return - 0.5 * kappas::marcenko_pastur_integral(&to_integrate_1, gamma) + 0.5 * kappas::marcenko_pastur_integral(&to_integrate_2, gamma);
+}
+
+pub fn psi_y(m : f64, q : f64, v : f64, beta : f64, delta : f64, rho : f64, data_model : &String) -> f64 {
+    let vstar = rho - m * m / q + delta;
+    let mut somme = 0.0;
+    let ys = [-1.0, 1.0];
+
+    let teacher_z0 : fn(f64, f64, f64) -> f64;
+    if data_model == "logit" {
+        teacher_z0 = data_models::logit::z0;
+    }
+    else {
+        teacher_z0 = data_models::probit::z0;
+    }
+
+    /*
+    for i in 0..2 {
+        let y = ys[i];
+        let to_integrate = |xi : f64| -> f64 {};
+        somme = somme + integral::integrate(
+            // TODO : Implementer la likelihood normalisee 
+            |xi : f64| -> f64 {teacher_z0(y, m / q.sqrt() * xi, vstar) * ().ln() * (- xi * xi / 2.0) / (2.0 * PI).sqrt() },
+            (-FT_QUAD_BOUND, FT_QUAD_BOUND),
+            integral::Integral::G30K61(GK_PARAMETER)
+        );
+    }
+    */
+    return somme;
+
+}
+
+/*
+bound = 5.0
+teacher_data_model = {'logit' : utility.LogisticDataModel, 'probit' : utility.ProbitDataModel}[self.str_teacher_data_model]
+somme = 0.0
+Vstar = self.rho - m**2 / q + self.Delta
+for y in [-1.0, 1.0]:
+    somme += quad(lambda xi : teacher_data_model.Z0(y, m / np.sqrt(q) * xi, Vstar) * np.log(self.student_data_model.Z0(y, np.sqrt(q) * xi, V, beta)) * np.exp(- xi**2 / 2.0) / np.sqrt(2 * np.pi), -bound, bound)[0]
+return somme
+*/

@@ -2,7 +2,7 @@ use statrs::function::*;
 use peroxide::numerical::integral;
 use std::f64::consts::PI;
 
-static GK_PARAMETER : f64 = 0.0001;
+static GK_PARAMETER : f64 = 0.000001;
 
 pub fn z0(y : f64, w  : f64, v : f64) -> f64 {
     let integrand = |z : f64| -> f64 {logistic::logistic(y * (z * v.sqrt() + w)) * (- z*z / 2.0).exp()};

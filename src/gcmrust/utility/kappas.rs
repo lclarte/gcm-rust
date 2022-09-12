@@ -20,3 +20,13 @@ pub fn get_additional_noise_variance_from_kappas(kappa1 : f64, kappastar : f64, 
     
     return 1.0 - kk1 * integral::integrate(integrand, (lambda_minus, lambda_plus), integral::Integral::G30K61(0.000001)) / (2.0 * PI);
 }
+
+pub fn marcenko_pastur_integral(f : &dyn Fn(f64) -> f64, gamma : f64) -> f64 {
+    let (lambda_minus, lambda_plus) : (f64, f64) = (1.0 - (gamma).sqrt().powi(2), (1.0 + (gamma).sqrt()).powi(2));
+    let to_integrate = |x : f64| -> f64 {f(x) * ((lambda_plus - x) * (x - lambda_minus)).sqrt() / (2.0 * PI * gamma * x)};
+    let integral : f64 = integral::integrate(to_integrate, (lambda_minus, lambda_plus), integral::Integral::G30K61(0.000001));
+    if gamma > 1.0 {
+        return integral + (1.0 - 1.0 / gamma) * f(0.0);
+    }
+    return integral
+}
