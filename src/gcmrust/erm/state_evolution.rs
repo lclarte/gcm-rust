@@ -1,5 +1,7 @@
 use crate::gcmrust::erm::integrals;
 
+static MAX_ITER_ERM   : i16 = 1000;
+
 pub fn update_overlaps(mhat : f64, qhat : f64, vhat : f64, kappa1 : f64, kappastar : f64, gamma_arg : f64, lamb : f64) -> (f64, f64, f64) {
     let alpha  = gamma_arg;
     let gamma  = 1.0 / gamma_arg;
@@ -73,8 +75,9 @@ pub fn state_evolution(alpha : f64, delta : f64, gamma : f64, kappa1 : f64, kapp
     let (mut m, mut q, mut v) = (0.01, 0.01, 0.99);
     let (mut prev_m, mut prev_q, mut prev_v) : (f64, f64, f64);
     let mut difference = 1.0;
+    let mut counter : i16 = 0;
     
-    while difference > se_tolerance {
+    while difference > se_tolerance && counter < MAX_ITER_ERM {
         (prev_m, prev_q, prev_v) = (m, q, v);
         (m, q, v) = iterate_se(m, q, v, alpha, delta, gamma, kappa1, kappastar, lambda, rho);
         if m == f64::NAN || q == f64::NAN || v == f64::NAN {
@@ -86,6 +89,11 @@ pub fn state_evolution(alpha : f64, delta : f64, gamma : f64, kappa1 : f64, kapp
         else {
             difference = (m - prev_m).abs() + (q - prev_q).abs() + (v - prev_v).abs();
         }
+        counter += 1;
+    }
+
+    if counter == MAX_ITER_ERM {
+        println!("Reached MAX_ITER_ERM in state evolution : last difference was {} / {}, relative tol. is {}", difference, se_tolerance, relative_tolerance);
     }
 
     return (m, q, v);
