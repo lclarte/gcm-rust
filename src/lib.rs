@@ -14,6 +14,11 @@ pub mod gcmrust {
         pub mod state_evolution;
     }
 
+    pub mod data_models {
+        pub mod logit;
+        pub mod probit;
+    }
+
     pub mod utility {
         pub mod errors;
         pub mod kappas;
@@ -23,6 +28,18 @@ pub mod gcmrust {
 #[pyfunction]
 fn erm_state_evolution_gcm_probit(alpha : f64, delta : f64, gamma : f64, kappa1 : f64, kappastar : f64, lambda_ : f64, rho : f64, se_tolerance : f64, relative_tolerance : bool) -> (f64, f64, f64) {
     let (m, q, v) = erm::state_evolution::state_evolution_gcm_probit(alpha, delta, gamma, kappa1, kappastar, lambda_, rho, se_tolerance, relative_tolerance);
+    return (m, q, v);
+}
+
+#[pyfunction]
+fn erm_state_evolution_matching_probit(alpha : f64, delta : f64, lambda_ : f64, rho : f64, se_tolerance : f64, relative_tolerance : bool) -> (f64, f64, f64) {
+    let (m, q, v) = erm::state_evolution::state_evolution_matching_probit(alpha, delta, lambda_, rho, se_tolerance, relative_tolerance);
+    return (m, q, v);
+}
+
+#[pyfunction]
+fn erm_state_evolution_matching_logit(alpha : f64, delta : f64, lambda_ : f64, rho : f64, se_tolerance : f64, relative_tolerance : bool) -> (f64, f64, f64) {
+    let (m, q, v) = erm::state_evolution::state_evolution_matching_logit(alpha, delta, lambda_, rho, se_tolerance, relative_tolerance);
     return (m, q, v);
 }
 
@@ -45,6 +62,8 @@ fn gcmpyo3(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     // m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
     m.add_function(wrap_pyfunction!(erm_state_evolution_gcm_probit, m)?)?;
     m.add_function(wrap_pyfunction!(pseudo_bayes_state_evolution_gcm_probit, m)?)?;
+    m.add_function(wrap_pyfunction!(erm_state_evolution_matching_probit, m)?)?;
+    m.add_function(wrap_pyfunction!(erm_state_evolution_matching_logit, m)?)?;
     m.add_function(wrap_pyfunction!(test, m)?)?;
     Ok(())
 }

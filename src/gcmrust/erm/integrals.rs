@@ -4,21 +4,31 @@ static PROX_TOLERANCE : f64 = 0.00000001;
 static PROX_EPSILON : f64 = 0.1;
 static MAX_ITER_PROX :  i16  = 1000;
 
-/*
 fn logistic_loss(z : f64) -> f64 {
     return (1.0 + (-z).exp()).ln();
 }
-*/
 
 fn logistic_loss_derivative(z : f64) -> f64 {
     return - 1.0 / (1.0 + z.exp());
 }
 
-/*
+fn logistic_loss_second_derivative(z : f64) -> f64 {
+    if (z).abs() > 500.0 {
+        if z > 0.0{
+            return 0.25 * (-z).exp();
+        } 
+        else{
+            return 0.25 * z.exp();
+        }
+    } 
+    else {
+        return 1.0 / (4.0 * (z / 2.0).cosh().powi(2));
+    } 
+}
+
 fn moreau_logistic_loss(x : f64, y : f64, omega : f64, v : f64) -> f64 {
     return (x-omega).powi(2) / (2.0 * v) + logistic_loss(y*x);
 }
-*/
 
 fn moreau_logistic_loss_derivative(x : f64, y : f64, omega : f64, v : f64) -> f64 {
     // derivative with respect to x
@@ -94,23 +104,44 @@ pub mod probit_data_erm {
     use peroxide::numerical::integral;
 
     static QUAD_BOUND : f64 = 10.0;
+    static GK_PARAMETER : f64 = 0.0001;
 
     pub fn integrate_for_vhat(m : f64, q : f64, v : f64, vstar : f64) -> f64 { 
-        let i1 = integral::integrate(|xi : f64| -> f64 {f_vhat_plus(xi, m, q, v, vstar) * (-xi*xi / 2.0).exp() / (2.0 * PI).sqrt()}, (-QUAD_BOUND, QUAD_BOUND), integral::Integral::G30K61(0.0001));
-        let i2 = integral::integrate(|xi : f64| -> f64 {f_vhat_minus(xi, m, q, v, vstar) * (-xi*xi / 2.0).exp() / (2.0 * PI).sqrt()}, (-QUAD_BOUND, QUAD_BOUND), integral::Integral::G30K61(0.0001));
+        let i1 = integral::integrate(|xi : f64| -> f64 {f_vhat_plus(xi, m, q, v, vstar) * (-xi*xi / 2.0).exp() / (2.0 * PI).sqrt()}, (-QUAD_BOUND, QUAD_BOUND), integral::Integral::G30K61(GK_PARAMETER));
+        let i2 = integral::integrate(|xi : f64| -> f64 {f_vhat_minus(xi, m, q, v, vstar) * (-xi*xi / 2.0).exp() / (2.0 * PI).sqrt()}, (-QUAD_BOUND, QUAD_BOUND), integral::Integral::G30K61(GK_PARAMETER));
         return 0.5 * (i1 + i2);
     }
     
     pub fn integrate_for_qhat(m : f64, q : f64, v : f64, vstar : f64) -> f64 { 
-        let i1 = integral::integrate(|xi : f64| -> f64 {f_qhat_plus(xi, m, q, v, vstar) * (-xi*xi / 2.0).exp() / (2.0 * PI).sqrt()}, (-QUAD_BOUND, QUAD_BOUND), integral::Integral::G30K61(0.0001));
-        let i2 = integral::integrate(|xi : f64| -> f64 {f_qhat_minus(xi, m, q, v, vstar) * (-xi*xi / 2.0).exp() / (2.0 * PI).sqrt()}, (-QUAD_BOUND, QUAD_BOUND), integral::Integral::G30K61(0.0001));
+        let i1 = integral::integrate(|xi : f64| -> f64 {f_qhat_plus(xi, m, q, v, vstar) * (-xi*xi / 2.0).exp() / (2.0 * PI).sqrt()}, (-QUAD_BOUND, QUAD_BOUND), integral::Integral::G30K61(GK_PARAMETER));
+        let i2 = integral::integrate(|xi : f64| -> f64 {f_qhat_minus(xi, m, q, v, vstar) * (-xi*xi / 2.0).exp() / (2.0 * PI).sqrt()}, (-QUAD_BOUND, QUAD_BOUND), integral::Integral::G30K61(GK_PARAMETER));
         return 0.5 * (i1 + i2);
     }
     
     pub fn integrate_for_mhat(m : f64, q : f64, v : f64, vstar : f64) -> f64{
-        let i1 = integral::integrate(|xi : f64| -> f64 {f_mhat_plus(xi, m, q, v, vstar) * (-xi*xi / 2.0).exp() / (2.0 * PI).sqrt()}, (-QUAD_BOUND, QUAD_BOUND), integral::Integral::G30K61(0.0001));
-        let i2 = integral::integrate(|xi : f64| -> f64 {f_mhat_minus(xi, m, q, v, vstar) * (-xi*xi / 2.0).exp() / (2.0 * PI).sqrt()}, (-QUAD_BOUND, QUAD_BOUND), integral::Integral::G30K61(0.0001));
+        let i1 = integral::integrate(|xi : f64| -> f64 {f_mhat_plus(xi, m, q, v, vstar) * (-xi*xi / 2.0).exp() / (2.0 * PI).sqrt()}, (-QUAD_BOUND, QUAD_BOUND), integral::Integral::G30K61(GK_PARAMETER));
+        let i2 = integral::integrate(|xi : f64| -> f64 {f_mhat_minus(xi, m, q, v, vstar) * (-xi*xi / 2.0).exp() / (2.0 * PI).sqrt()}, (-QUAD_BOUND, QUAD_BOUND), integral::Integral::G30K61(GK_PARAMETER));
         return (i1 - i2) * (1.0 /(2.0 * PI * vstar).sqrt())
+    }
+
+}
+
+// 
+
+pub mod logistic_channel {
+    use crate::gcmrust::erm::integrals::*;
+
+    // define the z0, f0, etc. functions here
+
+    pub fn f0(y : f64, omega : f64, v : f64) -> f64 {
+        let lambda_star  = proximal_logistic_loss(omega, v, y);
+        return (lambda_star - omega) / v;
+    }
+
+    pub fn df0(y : f64, omega : f64, v : f64) -> f64 {
+        let lambda_star  = proximal_logistic_loss(omega, v, y);
+        let dlambda_star = 1.0 / (1.0 + v * logistic_loss_second_derivative(lambda_star));
+        return (dlambda_star - 1.0) / v;
     }
 
 }
@@ -118,44 +149,56 @@ pub mod probit_data_erm {
 //
 
 pub mod logit_data_erm {
+    
+    use peroxide::numerical::integral;
+    use std::f64::consts::PI;
+    
+    use crate::gcmrust::data_models::logit;
     use crate::gcmrust::erm::integrals::*;
 
-    /*
-    pub fn integrate_for_vhat(m : f64, q : f64, v : f64, vstar : f64) -> f64 { 
-        let somme = 0.0_f64;
-        for y in 
+    static ERM_QUAD_BOUND : f64 = 10.0_f64;
+    static GK_PARAMETER   : f64 = 0.0001_f64;
+
+    pub fn integrate_for_mhat(m : f64, q : f64, v : f64, vstar : f64) -> f64 { 
+        let mut somme = 0.0_f64;
+        let ys    = [-1.0, 1.0];
+
+        for index in 0..2 {
+            let y = ys[index];
+            somme += integral::integrate(
+                |xi : f64| -> f64 {(-xi.powi(2) / 2.0).exp() / (2.0 * PI).sqrt() * logistic_channel::f0(y, q.sqrt() * xi, v) * logit::dz0(y, m / q.sqrt() * xi, vstar)}, 
+                (- ERM_QUAD_BOUND, ERM_QUAD_BOUND), integral::Integral::G30K61(GK_PARAMETER)
+            );
+        }
+        return somme;
     }
     
     pub fn integrate_for_qhat(m : f64, q : f64, v : f64, vstar : f64) -> f64 { 
-    
+        let mut somme = 0.0_f64;
+        let ys    = [-1.0, 1.0];
+
+        for index in 0..2 {
+            let y = ys[index];
+            somme += integral::integrate(
+                |xi : f64| -> f64 {(-xi.powi(2) / 2.0).exp() / (2.0 * PI).sqrt() * logistic_channel::f0(y, q.sqrt() * xi, v).powi(2) * logit::z0(y, m / q.sqrt() * xi, vstar)}, 
+                (- ERM_QUAD_BOUND, ERM_QUAD_BOUND), integral::Integral::G30K61(GK_PARAMETER)
+            );
+        }
+        return somme;
     }
     
-    pub fn integrate_for_mhat(m : f64, q : f64, v : f64, vstar : f64) -> f64{
-    
+    pub fn integrate_for_vhat(m : f64, q : f64, v : f64, vstar : f64) -> f64{ 
+        let mut somme = 0.0_f64;
+        let ys    = [-1.0, 1.0];
+
+        for index in 0..2 {
+            let y = ys[index];
+            somme += integral::integrate(
+                |xi : f64| -> f64 {(-xi.powi(2) / 2.0).exp() / (2.0 * PI).sqrt() * logistic_channel::df0(y, q.sqrt() * xi, v).powi(2) * logit::z0(y, m / q.sqrt() * xi, vstar)}, 
+                (- ERM_QUAD_BOUND, ERM_QUAD_BOUND), integral::Integral::G30K61(GK_PARAMETER)
+            );
+        }
+        return somme;
     }
-    */
-
-    /*
-    def logistic_integrate_for_mhat(M, Q, V, Vstar):
-    bound = 10.0
-    somme = 0.0
-    for y in [-1, 1]:
-        somme += quad(lambda xi : np.exp(- xi**2 / 2.0) / np.sqrt(2 * np.pi) * fout(y, np.sqrt(Q) * xi, V) * LogisticDataModel.dZ0(y, M / np.sqrt(Q) * xi, Vstar), -bound, bound, limit=500)[0]
-    return somme
-
-def logistic_integrate_for_Qhat(M, Q, V, Vstar):
-    bound = 10.0
-    somme = 0.0
-    for y in [-1, 1]:
-        somme += quad(lambda xi : np.exp(- xi**2 / 2.0) / np.sqrt(2 * np.pi) * fout(y, np.sqrt(Q)*xi, V)**2 * LogisticDataModel.Z0(y, M / np.sqrt(Q) * xi, Vstar), -bound, bound, limit=500)[0]
-    return somme
-
-def logistic_integrate_for_Vhat(M, Q, V, Vstar):
-    bound = 10.0
-    somme = 0.0
-    for y in [-1, 1]:
-        somme += quad(lambda xi : np.exp(- xi**2 / 2.0) / np.sqrt(2 * np.pi) * dfout(y, np.sqrt(Q)*xi, V) * LogisticDataModel.Z0(y, M / np.sqrt(Q) * xi, Vstar), -bound, bound, limit=500)[0]
-    return somme
-    */
 
 }

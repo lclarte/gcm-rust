@@ -57,7 +57,7 @@ pub fn update_overlaps_matching(mhat : f64, qhat : f64, vhat : f64, lambda : f64
     return (m, q, v);
 } 
 
-pub fn update_hatoverlaps(m : f64, q : f64, v : f64, alpha : f64, gamma : f64, rho : f64, delta : f64) -> (f64, f64, f64) {
+pub fn update_hatoverlaps_probit(m : f64, q : f64, v : f64, alpha : f64, gamma : f64, rho : f64, delta : f64) -> (f64, f64, f64) {
     let sigma = rho - (m*m / q) + delta;
 
     let im = integrals::probit_data_erm::integrate_for_mhat(m, q, v, sigma,);
@@ -72,14 +72,35 @@ pub fn update_hatoverlaps(m : f64, q : f64, v : f64, alpha : f64, gamma : f64, r
 
 }
 
+pub fn update_hatoverlaps_logit(m : f64, q : f64, v : f64, alpha : f64, gamma : f64, rho : f64, delta : f64) -> (f64, f64, f64) {
+    let sigma = rho - (m*m / q) + delta;
+
+    let im = integrals::logit_data_erm::integrate_for_mhat(m, q, v, sigma,);
+    let iq = integrals::logit_data_erm::integrate_for_qhat(m, q, v, sigma);
+    let iv = integrals::logit_data_erm::integrate_for_vhat(m, q, v, sigma);
+
+    let mhat = alpha * gamma.sqrt() * im / v;
+    let vhat = alpha * ((1.0/v) - (1.0 / v.powi(2)) * iv);
+    let qhat = alpha * iq/v.powi(2);
+    
+    return (mhat, qhat, vhat);
+
+}
+
 pub fn iterate_se_gcm_probit(m : f64, q : f64, v : f64, alpha : f64, delta : f64, gamma : f64, kappa1 : f64, kappastar : f64, lambda : f64, rho : f64) -> (f64, f64, f64) {
-    let (mhat, qhat, vhat) = update_hatoverlaps(m, q, v, alpha, gamma, rho, delta);
+    let (mhat, qhat, vhat) = update_hatoverlaps_probit(m, q, v, alpha, gamma, rho, delta);
     let (new_m, new_q, new_v) =  update_overlaps_gcm(mhat, qhat, vhat, kappa1, kappastar, gamma, lambda);
     return (new_m, new_q, new_v);
 }
 
-pub fn iterate_se_matching(m : f64, q : f64, v : f64, alpha : f64, delta : f64, lambda : f64, rho : f64) -> (f64, f64, f64) {
-    let (mhat, qhat, vhat) = update_hatoverlaps(m, q, v, alpha, 1.0, rho, delta);
+pub fn iterate_se_matching_probit(m : f64, q : f64, v : f64, alpha : f64, delta : f64, lambda : f64, rho : f64) -> (f64, f64, f64) {
+    let (mhat, qhat, vhat) = update_hatoverlaps_probit(m, q, v, alpha, 1.0, rho, delta);
+    let (new_m, new_q, new_v) =  update_overlaps_matching(mhat, qhat, vhat, lambda);
+    return (new_m, new_q, new_v);
+}
+
+pub fn iterate_se_matching_logit(m : f64, q : f64, v : f64, alpha : f64, delta : f64, lambda : f64, rho : f64) -> (f64, f64, f64) {
+    let (mhat, qhat, vhat) = update_hatoverlaps_logit(m, q, v, alpha, 1.0, rho, delta);
     let (new_m, new_q, new_v) =  update_overlaps_matching(mhat, qhat, vhat, lambda);
     return (new_m, new_q, new_v);
 }
@@ -120,7 +141,35 @@ pub fn state_evolution_matching_probit(alpha : f64, delta : f64, lambda : f64, r
 
     while difference > se_tolerance && counter < MAX_ITER_ERM {
         (prev_m, prev_q, prev_v) = (m, q, v);
-        (m, q, v) = iterate_se_matching(m, q, v, alpha, delta, lambda, rho);
+        (m, q, v) = iterate_se_matching_probit(m, q, v, alpha, delta, lambda, rho);
+        if m == f64::NAN || q == f64::NAN || v == f64::NAN {
+            panic!("One of the overlaps is NAN");
+        }
+        if relative_tolerance {
+            difference = (m - prev_m).abs() / m.abs() + (q - prev_q).abs() / q.abs() + (v - prev_v).abs() / v.abs();
+        }
+        else {
+            difference = (m - prev_m).abs() + (q - prev_q).abs() + (v - prev_v).abs();
+        }
+        counter += 1;
+    }
+
+    if counter == MAX_ITER_ERM {
+        println!("Reached MAX_ITER_ERM in state evolution : last difference was {} / {}, relative tol. is {}", difference, se_tolerance, relative_tolerance);
+    }
+
+    return (m, q, v);
+}
+
+pub fn state_evolution_matching_logit(alpha : f64, delta : f64, lambda : f64, rho : f64, se_tolerance : f64, relative_tolerance : bool) -> (f64, f64, f64) {
+    let (mut m, mut q, mut v) = (0.01, 0.01, 0.99);
+    let (mut prev_m, mut prev_q, mut prev_v) : (f64, f64, f64);
+    let mut difference = 1.0;
+    let mut counter : i16 = 0;
+
+    while difference > se_tolerance && counter < MAX_ITER_ERM {
+        (prev_m, prev_q, prev_v) = (m, q, v);
+        (m, q, v) = iterate_se_matching_logit(m, q, v, alpha, delta, lambda, rho);
         if m == f64::NAN || q == f64::NAN || v == f64::NAN {
             panic!("One of the overlaps is NAN");
         }
