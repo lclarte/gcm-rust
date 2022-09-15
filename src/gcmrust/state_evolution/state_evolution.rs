@@ -5,9 +5,9 @@ use crate::gcmrust::data_models::base_model::Partition;
 use crate::gcmrust::state_evolution::integrals;
 
 
-static MAX_ITER_ERM   : i16 = 100;
+static MAX_ITER_ERM   : i16 = 500;
 static MAX_VALUE_Q    : f64 = 10000.0;
-static DAMPING_COEF   : f64 = 1.0;
+static DAMPING_COEF   : f64 = 0.9;
 //
 
 pub fn update_hatoverlaps(m : f64, q : f64, v : f64, alpha : f64, channel : &impl channels::base_channel::Channel, data_model : &impl data_models::base_model::Partition, prior : &impl data_models::base_model::ParameterPrior) -> (f64, f64, f64) {
@@ -60,7 +60,6 @@ pub fn state_evolution<C : channels::base_channel::Channel, P : Partition, Q : P
             difference = (m - prev_m).abs() + (q - prev_q).abs() + (v - prev_v).abs();
         }
         counter += 1;
-        println!("m, q, v : {}, {}, {}",m, q, v);
     }
 
     if counter == MAX_ITER_ERM {
