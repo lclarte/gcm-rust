@@ -5,10 +5,17 @@ pub struct Matching {
     pub rho : f64
 }
 
+pub struct MatchingPseudoBayes {
+    pub beta_times_lambda : f64,
+    pub rho : f64   
+}
+
+/*
 pub struct MatchingBayesOptimal {
     pub lambda : f64,
     pub rho : f64
 }
+*/
 
 impl base_model::ParameterPrior for Matching {
     fn get_rho(&self) -> f64 {
@@ -25,6 +32,22 @@ impl base_model::ParameterPrior for Matching {
     }
 }
 
+impl base_model::ParameterPrior for MatchingPseudoBayes {
+    fn get_rho(&self) -> f64 {
+        return self.rho;
+    }
+    fn get_gamma(&self) -> f64{
+        return 1.0;
+    }
+    fn update_overlaps(&self, mhat : f64, qhat : f64, vhat : f64) -> (f64, f64, f64) {
+        let v = 1. / (self.beta_times_lambda + vhat);
+        let q = (mhat.powi(2) + qhat) / (self.beta_times_lambda + vhat).powi(2);
+        let m = mhat / (self.beta_times_lambda + vhat);
+        return (m, q, v);
+    }
+}
+
+/*
 impl base_model::ParameterPrior for MatchingBayesOptimal {
     fn get_rho(&self) -> f64 {
         return self.rho;
@@ -39,3 +62,4 @@ impl base_model::ParameterPrior for MatchingBayesOptimal {
         return (m, q, v);
     }
 }
+*/

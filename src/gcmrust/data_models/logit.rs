@@ -1,7 +1,7 @@
 use statrs::function::*;
 use peroxide::numerical::integral;
 use std::f64::consts::PI;
-use crate::gcmrust::data_models::base_model;
+use crate::gcmrust::{data_models::base_model, channels::base_channel::Channel};
 
 static GK_PARAMETER : f64 = 0.000001;
 static LOGIT_QUAD_BOUND : f64 = 10.0; 
@@ -37,9 +37,8 @@ impl base_model::Partition for Logit {
         }
     }
 
-    fn f0(&self, y : f64, w  : f64, v : f64) -> f64 {
-        let result = self.dz0(y, w, v) / self.z0(y, w, v);
-        return result;
+    fn ddz0(&self, y : f64, w : f64, v : f64) -> f64 {
+        panic!("Not implemented yet !");
     }
 
 }

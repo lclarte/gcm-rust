@@ -22,7 +22,6 @@ pub fn update_hatoverlaps(m : f64, q : f64, v : f64, alpha : f64, channel : &imp
     let qhat = alpha * iq ;
     
     return (mhat, qhat, vhat);
-
 }
 
 //

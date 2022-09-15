@@ -1,7 +1,7 @@
 use peroxide::numerical::*;
 use std::f64::consts::PI;
 
-use crate::gcmrust::channels::base_channel;
+use crate::gcmrust::{channels::base_channel, data_models::base_model::Partition};
 
 static THRESHOLD_P : f64 = -10.0_f64;
 static THRESHOLD_L : f64 = -10.0_f64;
@@ -76,23 +76,17 @@ pub struct PseudoBayesLogistic {
     pub beta  : f64
 }
 
-impl base_channel::Channel for PseudoBayesLogistic{
-    fn f0(&self, y : f64, w : f64, v : f64) -> f64 {
-        let retour = dz0(y, w, v, self.beta, self.bound) / z0(y, w, v, self.beta, self.bound);
-        if retour == std::f64::NAN {
-            return 0.0;
-        }
-        return retour;
+impl Partition for PseudoBayesLogistic{
+    fn z0(&self, y : f64, w : f64, v : f64) -> f64 {
+        return z0(y, w, v, self.beta, self.bound);
     }
-    
-    fn df0(&self, y : f64, w : f64, v : f64) -> f64 {
-        let z0  = z0(y, w, v, self.beta, self.bound);
-        let dz0 = dz0(y, w, v, self.beta, self.bound);
-        let ddz0= ddz0(y, w, v, self.beta, self.bound,  Some(z0));
-        let retour = ddz0 / z0 - (dz0 / z0).powi(2);
-        if retour == std::f64::NAN {
-            return 0.0;
-        }
-        return retour;
+
+    fn dz0(&self, y : f64, w : f64, v : f64) -> f64 {
+        return dz0(y, w, v, self.beta, self.bound);
+    }
+
+    fn ddz0(&self, y : f64, w : f64, v : f64) -> f64 {
+        let z0 = self.z0(y, w, v);
+        return ddz0(y, w, v, self.beta, self.bound, Some(z0));
     }
 }

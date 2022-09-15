@@ -104,16 +104,17 @@ fn erm_state_evolution_matching(alpha : f64, delta : f64, lambda_ : f64, rho : f
 fn pseudo_bayes_state_evolution_gcm(alpha : f64, beta : f64, delta : f64, gamma : f64, kappa1 : f64, kappastar : f64, lambda_ : f64, rho : f64, data_model : String, se_tolerance : f64, relative_tolerance : bool, normalized : bool) -> (f64, f64, f64, f64, f64, f64) {
     let additional_variance = get_additional_noise_variance_from_kappas(kappa1, kappastar, gamma);
     let noise_variance = delta + additional_variance;
-    let prior = data_models::gcm::GCMPrior {
+    let prior = data_models::gcm::GCMPriorPseudoBayes {
         kappa1 : kappa1,
         kappastar : kappastar,
         gamma : gamma,
-        lambda : lambda_,
+        beta_times_lambda : beta * lambda_,
+        // Give the TRUE prior norm, of the teacher, not of the student
         rho : rho - additional_variance
     };
 
     if normalized {
-        let channel = channels::normalized_pseudo_bayes_logistic::PseudoBayesLogistic {
+        let channel = channels::normalized_pseudo_bayes_logistic::NormalizedPseudoBayesLogistic {
             bound : 10.0,
             beta  : beta
         };
@@ -159,13 +160,13 @@ fn pseudo_bayes_state_evolution_gcm(alpha : f64, beta : f64, delta : f64, gamma 
 #[pyfunction]
 fn pseudo_bayes_state_evolution_matching(alpha : f64, beta : f64, delta : f64, lambda_ : f64, rho : f64, data_model : String, se_tolerance : f64, relative_tolerance : bool, normalized : bool) -> (f64, f64, f64, f64, f64, f64) {
     let noise_variance = delta;
-    let prior = data_models::matching::Matching {
-        lambda : lambda_,
+    let prior = data_models::matching::MatchingPseudoBayes {
+        beta_times_lambda : beta *lambda_,
         rho : rho
     };
 
     if normalized {
-        let channel = channels::normalized_pseudo_bayes_logistic::PseudoBayesLogistic {
+        let channel = channels::normalized_pseudo_bayes_logistic::NormalizedPseudoBayesLogistic {
             bound : 10.0,
             beta  : beta
         };
@@ -208,6 +209,7 @@ fn pseudo_bayes_state_evolution_matching(alpha : f64, beta : f64, delta : f64, l
     }
 }
 
+/*
 #[pyfunction]
 fn bayes_optimal_state_evolution_gcm(alpha : f64, delta : f64, gamma : f64, kappa1 : f64, kappastar : f64, rho : f64, data_model : String, se_tolerance : f64, relative_tolerance : bool, normalized : bool) -> (f64, f64, f64, f64, f64, f64) {
     let noise_variance = delta;
@@ -240,15 +242,17 @@ fn bayes_optimal_state_evolution_gcm(alpha : f64, delta : f64, gamma : f64, kapp
     } 
 
 }
-/*
+*/
+
+/* 
 #[pyfunction]
 fn pseudo_bayes_log_partition_matching(m : f64, q : f64, v : f64, mhat : f64, qhat : f64, vhat : f64, alpha : f64, beta : f64, delta : f64, lambda : f64, rho : f64, data_model : String) -> f64 {
-    return normalized_pseudo_bayes::integrals::log_partition_matching(m, q, v, mhat, qhat, vhat, alpha, beta, delta, lambda,   &data_model);
+    return channels::normalized_pseudo_bayes_logistic::log_partition_matching(m, q, v, mhat, qhat, vhat, alpha, beta, delta, lambda,   &data_model);
 }
 
 #[pyfunction]
 fn pseudo_bayes_log_partition_gcm(m : f64, q : f64, v : f64, mhat : f64, qhat : f64, vhat : f64, alpha : f64, beta : f64, delta : f64, gamma : f64, kappa1 : f64, kappastar : f64, lambda : f64, rho : f64, data_model : String) -> f64 {
-    return normalized_pseudo_bayes::integrals::log_partition_gcm(m, q, v, mhat, qhat, vhat, alpha, beta, delta, gamma, kappa1, kappastar, lambda,   &data_model);
+    return channels::normalized_pseudo_bayes_logistic::log_partition_gcm(m, q, v, mhat, qhat, vhat, alpha, beta, delta, gamma, kappa1, kappastar, lambda,   &data_model);
 }
 */
 
