@@ -8,7 +8,6 @@ pub trait Partition {
 }
 
 pub trait ParameterPrior {
-
     fn get_gamma(&self) -> f64;
     fn get_rho(&self) -> f64;
     fn update_overlaps(&self, mhat : f64, qhat : f64, vhat : f64) -> (f64, f64, f64);
