@@ -6,7 +6,7 @@ use crate::gcmrust::state_evolution::integrals;
 
 
 static MAX_ITER_ERM   : i16 = 500;
-static MAX_VALUE_Q    : f64 = 10000.0;
+static MAX_VALUE_Q    : f64 = 1000000.0;
 static DAMPING_COEF   : f64 = 0.9;
 //
 
