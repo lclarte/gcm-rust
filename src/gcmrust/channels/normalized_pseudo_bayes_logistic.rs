@@ -95,34 +95,3 @@ impl Partition for NormalizedPseudoBayesLogistic{
         return ddz0(y, w, v, self.beta, self.bound, None);
     }
 }
-
-// Useful functions to compute the evidence
-
-pub fn psi_w_matching(mhat : f64, qhat : f64, vhat : f64, beta : f64, lambda : f64) -> f64 {
-    return - 0.5 * (beta * lambda + vhat).ln() + 0.5 * (mhat * mhat + qhat) / (beta * lambda + vhat);
-}
-
-pub fn psi_w_gcm(mhat : f64, qhat : f64, vhat : f64, beta : f64, gamma : f64, kappa1 : f64, kappastar : f64, lambda : f64) -> f64 {
-    let (kk1, kkstar) = (kappa1 * kappa1, kappastar * kappastar);
-    let to_integrate_1 = |x : f64| -> f64 {(beta * lambda + vhat * (kk1 * x + kkstar)).ln()};
-    let to_integrate_2 = |x : f64| -> f64 { (mhat * kk1 * x + qhat * (kk1 * x + kkstar)) / (beta * lambda + vhat * (kk1 * x + kkstar))} ;
-    return - 0.5 * utility::kappas::marcenko_pastur_integral(&to_integrate_1, gamma) + 0.5 * utility::kappas::marcenko_pastur_integral(&to_integrate_2, gamma);
-}
-
-pub fn psi_y(m : f64, q : f64, v : f64,  student_partition : &impl Partition, true_model : &impl Partition, prior : &impl ParameterPrior) -> f64 {
-    let vstar = prior.get_rho() - m * m / q;
-    let mut somme = 0.0;
-    let ys = [-1.0, 1.0];
-
-    for i in 0..2 {
-        let y = ys[i];
-        somme = somme + integral::integrate(
-            // TODO : Implementer la likelihood normalisee 
-            |xi : f64| -> f64 {true_model.z0(y, m / q.sqrt() * xi, vstar) * ( student_partition.z0(y, q.sqrt() * xi, v) ).ln() * (- xi * xi / 2.0) / (2.0 * PI).sqrt() },
-            (-10.0, 10.0),
-            integral::Integral::G30K61(GK_PARAMETER)
-        );
-    }
-
-    return somme;
-}

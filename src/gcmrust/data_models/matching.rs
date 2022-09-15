@@ -30,6 +30,10 @@ impl base_model::ParameterPrior for Matching {
         let m = mhat / (self.lambda + vhat);
         return (m, q, v);
     }
+
+    fn psi_w(&self, mhat : f64, qhat : f64, vhat : f64) -> f64 {
+        return - 0.5 * (self.lambda + vhat).ln() + 0.5 * (mhat * mhat + qhat) / (self.lambda + vhat);
+    }
 }
 
 impl base_model::ParameterPrior for MatchingPseudoBayes {
@@ -45,8 +49,17 @@ impl base_model::ParameterPrior for MatchingPseudoBayes {
         let m = mhat / (self.beta_times_lambda + vhat);
         return (m, q, v);
     }
+
+    fn psi_w(&self, mhat : f64, qhat : f64, vhat : f64) -> f64 {
+        return - 0.5 * (self.beta_times_lambda + vhat).ln() + 0.5 * (mhat * mhat + qhat) / (self.beta_times_lambda + vhat);
+    }
 }
 
+impl base_model::PseudoBayesPrior for MatchingPseudoBayes {
+    fn get_prior_strength(&self) -> f64 {
+        return self.beta_times_lambda;
+    }
+}
 /*
 impl base_model::ParameterPrior for MatchingBayesOptimal {
     fn get_rho(&self) -> f64 {

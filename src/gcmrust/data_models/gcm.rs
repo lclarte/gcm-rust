@@ -17,7 +17,7 @@ pub struct GCMPriorPseudoBayes {
     pub rho : f64,
 }
 
-pub struct GCMBayesOptimalPrior {
+pub struct GCMPriorBayesOptimal {
     pub kappa1 : f64,
     pub kappastar : f64,
     pub gamma : f64,
@@ -80,6 +80,14 @@ impl base_model::ParameterPrior for GCMPrior {
             return (m, q, v);
         }  
     }
+
+    fn psi_w(&self, mhat : f64, qhat : f64, vhat : f64) -> f64 {
+        let (kk1, kkstar) = (self.kappa1 * self.kappa1, self.kappastar * self.kappastar);
+        let to_integrate_1 = |x : f64| -> f64 {(self.lambda + vhat * (kk1 * x + kkstar)).ln()};
+        let to_integrate_2 = |x : f64| -> f64 { (mhat * kk1 * x + qhat * (kk1 * x + kkstar)) / (self.lambda + vhat * (kk1 * x + kkstar))} ;
+        return - 0.5 * kappas::marcenko_pastur_integral(&to_integrate_1, self.gamma) + 0.5 * kappas::marcenko_pastur_integral(&to_integrate_2, self.gamma);
+    }
+
 }
 
 impl base_model::ParameterPrior for GCMPriorPseudoBayes {
@@ -138,8 +146,20 @@ impl base_model::ParameterPrior for GCMPriorPseudoBayes {
             return (m, q, v);
         }  
     }
+    
+    fn psi_w(&self, mhat : f64, qhat : f64, vhat : f64) -> f64 {
+        let (kk1, kkstar) = (self.kappa1 * self.kappa1, self.kappastar * self.kappastar);
+        let to_integrate_1 = |x : f64| -> f64 {(self.beta_times_lambda + vhat * (kk1 * x + kkstar)).ln()};
+        let to_integrate_2 = |x : f64| -> f64 { (mhat * kk1 * x + qhat * (kk1 * x + kkstar)) / (self.beta_times_lambda + vhat * (kk1 * x + kkstar))} ;
+        return - 0.5 * kappas::marcenko_pastur_integral(&to_integrate_1, self.gamma) + 0.5 * kappas::marcenko_pastur_integral(&to_integrate_2, self.gamma);
+    }
 }
 
+impl base_model::PseudoBayesPrior for GCMPriorPseudoBayes {
+    fn get_prior_strength(&self) -> f64 {
+        return self.beta_times_lambda;
+    }
+}
 /*
 impl base_model::ParameterPrior for GCMBayesOptimalPrior {
     fn get_rho(&self) -> f64 {

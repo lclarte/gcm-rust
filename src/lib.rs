@@ -1,6 +1,7 @@
 use core::panic;
 
 use gcmrust::state_evolution::state_evolution::state_evolution;
+use gcmrust::utility;
 use pyo3::prelude::*;
 
 use gcmrust::data_models;
@@ -27,6 +28,7 @@ pub mod gcmrust {
     pub mod utility {
         pub mod errors;
         pub mod kappas;
+        pub mod evidence;
     }
 
     pub mod channels {
@@ -244,17 +246,61 @@ fn bayes_optimal_state_evolution_gcm(alpha : f64, delta : f64, gamma : f64, kapp
 }
 */
 
-/* 
+
 #[pyfunction]
-fn pseudo_bayes_log_partition_matching(m : f64, q : f64, v : f64, mhat : f64, qhat : f64, vhat : f64, alpha : f64, beta : f64, delta : f64, lambda : f64, rho : f64, data_model : String) -> f64 {
-    return channels::normalized_pseudo_bayes_logistic::log_partition_matching(m, q, v, mhat, qhat, vhat, alpha, beta, delta, lambda,   &data_model);
+fn pseudo_bayes_log_evidence_matching(m : f64, q : f64, v : f64, mhat : f64, qhat : f64, vhat : f64, alpha : f64, beta : f64, delta : f64, lambda : f64, rho : f64, data_model : String) -> f64 {
+    let prior = data_models::matching::MatchingPseudoBayes {
+        rho : rho,
+        beta_times_lambda : beta * lambda,
+    };
+
+    let student_partition = channels::normalized_pseudo_bayes_logistic::NormalizedPseudoBayesLogistic {
+        bound : 10.0,
+        beta  : beta
+    };
+    
+    if data_model == "logit" {
+        let true_model = data_models::logit::Logit {
+            noise_variance : delta
+        };
+        return utility::evidence::log_evidence(m, q, v, mhat, qhat, vhat, alpha, &student_partition, &true_model, &prior);
+    }
+    else {
+        let true_model = data_models::probit::Probit {
+            noise_variance : delta
+        };
+        return utility::evidence::log_evidence(m, q, v, mhat, qhat, vhat, alpha, &student_partition, &true_model, &prior);
+    }
 }
 
 #[pyfunction]
-fn pseudo_bayes_log_partition_gcm(m : f64, q : f64, v : f64, mhat : f64, qhat : f64, vhat : f64, alpha : f64, beta : f64, delta : f64, gamma : f64, kappa1 : f64, kappastar : f64, lambda : f64, rho : f64, data_model : String) -> f64 {
-    return channels::normalized_pseudo_bayes_logistic::log_partition_gcm(m, q, v, mhat, qhat, vhat, alpha, beta, delta, gamma, kappa1, kappastar, lambda,   &data_model);
+fn pseudo_bayes_log_evidence_gcm(m : f64, q : f64, v : f64, mhat : f64, qhat : f64, vhat : f64, alpha : f64, beta : f64, delta : f64, gamma : f64, kappa1 : f64, kappastar : f64, lambda : f64, rho : f64, data_model : String) -> f64 {
+    let prior = data_models::gcm::GCMPriorPseudoBayes {
+        rho : rho,
+        beta_times_lambda : beta * lambda,
+        gamma : gamma,
+        kappa1 : kappa1,
+        kappastar : kappastar
+    };
+
+    let student_partition = channels::normalized_pseudo_bayes_logistic::NormalizedPseudoBayesLogistic {
+        bound : 10.0,
+        beta  : beta
+    };
+    
+    if data_model == "logit" {
+        let true_model = data_models::logit::Logit {
+            noise_variance : delta
+        };
+        return utility::evidence::log_evidence(m, q, v, mhat, qhat, vhat, alpha, &student_partition, &true_model, &prior);
+    }
+    else {
+        let true_model = data_models::probit::Probit {
+            noise_variance : delta
+        };
+        return utility::evidence::log_evidence(m, q, v, mhat, qhat, vhat, alpha, &student_partition, &true_model, &prior);
+    }
 }
-*/
 
 #[pyfunction]
 fn test() {
@@ -271,8 +317,8 @@ fn gcmpyo3(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(erm_state_evolution_matching, m)?)?;
     m.add_function(wrap_pyfunction!(pseudo_bayes_state_evolution_gcm, m)?)?;
     m.add_function(wrap_pyfunction!(pseudo_bayes_state_evolution_matching, m)?)?;
-    // m.add_function(wrap_pyfunction!(pseudo_bayes_log_partition_matching, m)?)?;
-    // m.add_function(wrap_pyfunction!(pseudo_bayes_log_partition_gcm, m)?)?;
+    m.add_function(wrap_pyfunction!(pseudo_bayes_log_evidence_matching, m)?)?;
+    m.add_function(wrap_pyfunction!(pseudo_bayes_log_evidence_gcm, m)?)?;
     m.add_function(wrap_pyfunction!(test, m)?)?;
 
     Ok(())
