@@ -1,43 +1,26 @@
 use peroxide::numerical::*;
 use std::f64::consts::PI;
+use pyo3::prelude::*;
 
-use crate::gcmrust::{channels::base_channel, data_models::base_model::Partition};
+use crate::gcmrust::{channels::base_channel, data_models::base_partition::Partition, utility::constants::*};
 
-static THRESHOLD_P : f64 = -10.0_f64;
-static THRESHOLD_L : f64 = -10.0_f64;
-static GK_PARAMETER : f64 = 0.000001;
-
-pub fn p_out(x : f64, _beta : f64) -> f64 {
-    if x > THRESHOLD_P {
-        return (-1.0 as f64 + (-x).exp()).ln();
-    }
-    else {
-        return -x;
-    }
-}
+static PSEUDO_BAYES_BOUND : f64 = INTEGRAL_BOUNDS;
 
 pub fn likelihood(x : f64, beta : f64) -> f64 {
     if x > THRESHOLD_L {
-        return ( - beta * ( 1.0 as f64 + (-x).exp() ).ln() ).exp();
+        // Proba \propto exp{- \beta * Energy}, here Energy = log(1 + exp(-x))
+        return ( - beta * (1.0 as f64 + (-x).exp() ).ln() ).exp();
     }
     else {
-        return ( beta * x).exp();
+        return (beta * x).exp();
     }
 }
 
 pub fn z0_integrand(z : f64, y : f64, w : f64, sqrt_v : f64, beta : f64) -> f64 {
+    
     let local_field : f64 = y * (z * sqrt_v + w);
-    return   likelihood(local_field, beta) * (- z*z / 2.0).exp();
-}
+    return likelihood(local_field, beta) * (- z*z / 2.0).exp();
 
-pub fn z0(y : f64, w : f64, v : f64, beta : f64, bound : f64) -> f64{
-    if v > (10.0_f64).powi(-10) {
-        let sqrt_v = v.sqrt();
-        return integral::integrate(|z : f64| -> f64 {z0_integrand(z, y, w, sqrt_v, beta)}, (-bound, bound), integral::Integral::G30K61(GK_PARAMETER)) / (2.0 * PI).sqrt();
-    }
-    else {
-        return   likelihood(y * w, beta);
-    }
 }
 
 pub fn dz0_integrand(z : f64, y : f64, w : f64, sqrt_v : f64, beta : f64) -> f64 {
@@ -50,43 +33,54 @@ pub fn dz0_integrand(z : f64, y : f64, w : f64, sqrt_v : f64, beta : f64) -> f64
     }
 }
 
-fn dz0(y : f64, w : f64, v : f64, beta : f64, bound : f64) -> f64{
-    let sqrt_v = (v).sqrt();
-    return integral::integrate(|z : f64| -> f64 {dz0_integrand(z, y, w, sqrt_v, beta)}, (-bound, bound), integral::Integral::G30K61(GK_PARAMETER)) /  (2.0 * PI * v).sqrt();
-}
-
 fn ddz0_integrand(z : f64, y : f64, w : f64, sqrt_v : f64, beta : f64) -> f64 {
     return (z*z) *   likelihood(y * (z * sqrt_v + w), beta) * (-z*z / 2.0).exp() / (2.0 * PI).sqrt();
 }
 
-pub fn ddz0(y : f64, w : f64, v : f64, beta : f64, bound : f64, z0_option : Option<f64>) -> f64 {
-    let sqrt_v = v.sqrt();
-    let z0 : f64 = match z0_option {
-        None        => z0(y, w, sqrt_v * sqrt_v, beta, bound),
-        Some(value ) => value
-    };
 
-    let integrale = integral::integrate(| z : f64| -> f64 {ddz0_integrand(z, y, w, sqrt_v, beta)}, (-bound, bound), integral::Integral::G30K61(GK_PARAMETER));
-    return - z0 / v + integrale / v;
+// Definition de la structure 
 
-}
-        
+/*
+TODO : Convertir les structures en classe Python
+*/
+
 pub struct PseudoBayesLogistic {
-    pub bound : f64,
     pub beta  : f64
+}
+
+impl PseudoBayesLogistic {
+    fn integrate_function(&self, f : &dyn Fn(f64) -> f64) -> f64 {
+        return integral::integrate(f, (-PSEUDO_BAYES_BOUND, PSEUDO_BAYES_BOUND), integral::Integral::G30K61(GK_PARAMETER));
+        // return integral::integrate(f, (-PSEUDO_BAYES_BOUND, PSEUDO_BAYES_BOUND), integral::Integral::GaussLegendre(16));
+    }
 }
 
 impl Partition for PseudoBayesLogistic{
     fn z0(&self, y : f64, w : f64, v : f64) -> f64 {
-        return z0(y, w, v, self.beta, self.bound);
+        // return z0(y, w, v, self.beta, PSEUDO_BAYES_BOUND);
+        if v > (10.0_f64).powi(-10) {
+            let sqrt_v = v.sqrt();
+            return self.integrate_function(&|z : f64| -> f64 {z0_integrand(z, y, w, sqrt_v, self.beta)}) / (2.0 * PI).sqrt();
+        }
+    
+        else {
+            return likelihood(y * w, self.beta);
+        }
     }
 
     fn dz0(&self, y : f64, w : f64, v : f64) -> f64 {
-        return dz0(y, w, v, self.beta, self.bound);
+        // return dz0(y, w, v, self.beta, PSEUDO_BAYES_BOUND);
+        let sqrt_v = (v).sqrt();
+    return self.integrate_function(&|z : f64| -> f64 {dz0_integrand(z, y, w, sqrt_v, self.beta)}) /  (2.0 * PI * v).sqrt();
     }
 
     fn ddz0(&self, y : f64, w : f64, v : f64) -> f64 {
-        let z0 = self.z0(y, w, v);
-        return ddz0(y, w, v, self.beta, self.bound, Some(z0));
+        // let z0 = self.z0(y, w, v);
+        // return ddz0(y, w, v, self.beta, PSEUDO_BAYES_BOUND, Some(z0));
+        let sqrt_v = v.sqrt();
+        let z0 : f64 = self.z0(y, w, v);
+
+        let integrale = self.integrate_function(&| z : f64| -> f64 {ddz0_integrand(z, y, w, sqrt_v, self.beta)});
+        return - z0 / v + integrale / v;
     }
 }

@@ -1,4 +1,4 @@
-use crate::gcmrust::data_models::base_model;
+use crate::gcmrust::data_models::base_prior;
 use crate::gcmrust::utility::kappas;
 
 pub struct GCMPrior {
@@ -24,7 +24,7 @@ pub struct GCMPriorBayesOptimal {
     pub rho : f64,
 }
 
-impl base_model::ParameterPrior for GCMPrior {
+impl base_prior::ParameterPrior for GCMPrior {
 
     fn get_rho(&self) -> f64 {
         return self.rho;
@@ -90,7 +90,7 @@ impl base_model::ParameterPrior for GCMPrior {
 
 }
 
-impl base_model::ParameterPrior for GCMPriorPseudoBayes {
+impl base_prior::ParameterPrior for GCMPriorPseudoBayes {
 
     fn get_rho(&self) -> f64 {
         return self.rho;
@@ -150,33 +150,13 @@ impl base_model::ParameterPrior for GCMPriorPseudoBayes {
     fn psi_w(&self, mhat : f64, qhat : f64, vhat : f64) -> f64 {
         let (kk1, kkstar) = (self.kappa1 * self.kappa1, self.kappastar * self.kappastar);
         let to_integrate_1 = |x : f64| -> f64 {(self.beta_times_lambda + vhat * (kk1 * x + kkstar)).ln()};
-        let to_integrate_2 = |x : f64| -> f64 { (mhat * kk1 * x + qhat * (kk1 * x + kkstar)) / (self.beta_times_lambda + vhat * (kk1 * x + kkstar))} ;
+        let to_integrate_2 = |x : f64| -> f64 { (mhat.powi(2) * kk1 * x + qhat * (kk1 * x + kkstar)) / (self.beta_times_lambda + vhat * (kk1 * x + kkstar))} ;
         return - 0.5 * kappas::marcenko_pastur_integral(&to_integrate_1, self.gamma) + 0.5 * kappas::marcenko_pastur_integral(&to_integrate_2, self.gamma);
     }
 }
 
-impl base_model::PseudoBayesPrior for GCMPriorPseudoBayes {
+impl base_prior::PseudoBayesPrior for GCMPriorPseudoBayes {
     fn get_prior_strength(&self) -> f64 {
         return self.beta_times_lambda;
     }
 }
-/*
-impl base_model::ParameterPrior for GCMBayesOptimalPrior {
-    fn get_rho(&self) -> f64 {
-        return self.rho;
-    }
-    fn get_gamma(&self) -> f64 {
-        return self.gamma;
-    }
-    
-    fn update_overlaps(&self, _mhat : f64, qhat : f64, _vhat : f64) -> (f64, f64, f64) {
-        let kk1 = self.kappa1 * self.kappa1;
-        let kkstar = self.kappastar * self.kappastar;
-        let q = self.gamma * qhat * kappas::marcenko_pastur_integral(&{|x : f64| -> f64 { (kk1 * x / (kk1 * x + kkstar)).powi(2) / (1.0 + qhat * (kk1 * x / (kk1 * x + kkstar))) }}, self.gamma);
-
-        let m = q;
-        let v = self.rho - q;
-        return (m, q, v); 
-    }
-}
-*/

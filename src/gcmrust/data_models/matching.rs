@@ -1,11 +1,13 @@
-use crate::gcmrust::data_models::base_model;
+use crate::gcmrust::data_models::base_prior;
 
-pub struct Matching {
+use super::base_prior::PseudoBayesPrior;
+
+pub struct MatchingPrior {
     pub lambda : f64,
     pub rho : f64
 }
 
-pub struct MatchingPseudoBayes {
+pub struct MatchingPriorPseudoBayes {
     pub beta_times_lambda : f64,
     pub rho : f64   
 }
@@ -17,7 +19,7 @@ pub struct MatchingBayesOptimal {
 }
 */
 
-impl base_model::ParameterPrior for Matching {
+impl base_prior::ParameterPrior for MatchingPrior {
     fn get_rho(&self) -> f64 {
         return self.rho;
     }
@@ -36,7 +38,9 @@ impl base_model::ParameterPrior for Matching {
     }
 }
 
-impl base_model::ParameterPrior for MatchingPseudoBayes {
+// 
+
+impl base_prior::ParameterPrior for MatchingPriorPseudoBayes {
     fn get_rho(&self) -> f64 {
         return self.rho;
     }
@@ -51,28 +55,19 @@ impl base_model::ParameterPrior for MatchingPseudoBayes {
     }
 
     fn psi_w(&self, mhat : f64, qhat : f64, vhat : f64) -> f64 {
+        // return - 0.5 * np.log(beta_lambda + Vhat) + 0.5 * (mhat**2 + qhat) / (beta_lambda + Vhat)
         return - 0.5 * (self.beta_times_lambda + vhat).ln() + 0.5 * (mhat * mhat + qhat) / (self.beta_times_lambda + vhat);
     }
 }
 
-impl base_model::PseudoBayesPrior for MatchingPseudoBayes {
+impl base_prior::PseudoBayesPrior for MatchingPriorPseudoBayes {
     fn get_prior_strength(&self) -> f64 {
         return self.beta_times_lambda;
     }
 }
-/*
-impl base_model::ParameterPrior for MatchingBayesOptimal {
-    fn get_rho(&self) -> f64 {
-        return self.rho;
-    }
-    fn get_gamma(&self) -> f64{
-        return 1.0;
-    }
-    fn update_overlaps(&self, _mhat : f64, qhat : f64, _vhat : f64) -> (f64, f64, f64) {
-        let q = qhat / (1. + qhat);
-        let m = q;
-        let v = self.rho - q;
-        return (m, q, v);
+
+impl MatchingPriorPseudoBayes {
+    pub fn derivative_psi_w_prior_strength(&self, mhat : f64, qhat : f64, vhat : f64) -> f64{
+        return - 0.5 * (1. / (self.get_prior_strength() + vhat) + (mhat * mhat + qhat) / (self.get_prior_strength() + vhat).powi(2));
     }
 }
-*/
