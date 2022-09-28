@@ -6,3 +6,7 @@ pub trait Channel {
     fn f0(&self, y : f64, omega : f64, v : f64) -> f64;
     fn df0(&self, y : f64, omega : f64, v : f64) -> f64;
 }
+
+pub trait ChannelWithExplicitHatOverlapUpdate {
+    fn update_hatoverlaps(&self, m : f64, q : f64, v : f64) -> (f64, f64, f64);
+}
