@@ -40,6 +40,7 @@ fn ddz0_integrand(z : f64, y : f64, w : f64, sqrt_v : f64, beta : f64) -> f64 {
 
 // Definition de la structure 
 
+#[pyclass(unsendable)]
 pub struct PseudoBayesLogistic {
     pub beta  : f64
 }
@@ -78,5 +79,28 @@ impl Partition for PseudoBayesLogistic{
 
         let integrale = self.integrate_function(&| z : f64| -> f64 {ddz0_integrand(z, y, w, sqrt_v, self.beta)});
         return - z0 / v + integrale / v;
+    }
+}
+
+
+// part for the Python
+
+#[pymethods]
+impl PseudoBayesLogistic {
+    #[new]
+    pub fn new(beta : f64) -> PyResult<Self>{
+        Ok(PseudoBayesLogistic { beta : beta })
+    }
+
+    pub fn call_z0(&self, y : f64, w : f64, v : f64) -> f64 {
+        return self.z0(y, w, v);
+    }
+
+    pub fn call_dz0(&self, y : f64, w : f64, v : f64) -> f64 {
+        return self.dz0(y, w, v);
+    }
+
+    pub fn call_ddz0(&self, y : f64, w : f64, v : f64) -> f64 {
+        return self.ddz0(y, w, v);
     }
 }

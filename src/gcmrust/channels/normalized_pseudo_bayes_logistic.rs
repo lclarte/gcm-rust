@@ -1,4 +1,5 @@
 use peroxide::numerical::*;
+use pyo3::{pyclass, pymethods, PyResult};
 use statrs::function::logistic;
 use std::f64::consts::PI;
 
@@ -24,6 +25,7 @@ fn ddz0_integrand(z : f64, y : f64, w : f64, sqrt_v : f64, beta : f64) -> f64 {
     return z.powi(2) * likelihood(y * (z * sqrt_v + w), beta) * (-z*z / 2.0).exp() / (2.0 * PI).sqrt();
 }
         
+#[pyclass(unsendable)]
 pub struct NormalizedPseudoBayesLogistic {
     pub beta  : f64
 }
@@ -64,5 +66,25 @@ impl Partition for NormalizedPseudoBayesLogistic{
     
         let integrale = self.integrate_function(&| z : f64| -> f64 {ddz0_integrand(z, y, w, sqrt_v, self.beta)});
         return - z0 / v + integrale / v;
+    }
+}
+
+#[pymethods]
+impl NormalizedPseudoBayesLogistic {
+    #[new]
+    pub fn new(beta : f64) -> PyResult<Self>{
+        Ok(NormalizedPseudoBayesLogistic { beta : beta })
+    }
+
+    pub fn call_z0(&self, y : f64, w : f64, v : f64) -> f64 {
+        return self.z0(y, w, v);
+    }
+
+    pub fn call_dz0(&self, y : f64, w : f64, v : f64) -> f64 {
+        return self.dz0(y, w, v);
+    }
+
+    pub fn call_ddz0(&self, y : f64, w : f64, v : f64) -> f64 {
+        return self.ddz0(y, w, v);
     }
 }
