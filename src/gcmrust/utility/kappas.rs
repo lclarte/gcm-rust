@@ -31,3 +31,10 @@ pub fn marcenko_pastur_integral(f : &dyn Fn(f64) -> f64, gamma : f64) -> f64 {
     }
     return integral
 }
+
+pub fn marcenko_pastur_integral_without_zero(f : &dyn Fn(f64) -> f64, gamma : f64) -> f64 {
+    let (lambda_minus, lambda_plus) : (f64, f64) = ((1.0 - gamma.sqrt()).powi(2), (1.0 + gamma.sqrt()).powi(2));
+    let to_integrate = |x : f64| -> f64 {f(x) * ((lambda_plus - x) * (x - lambda_minus)).sqrt() / (2.0 * PI * gamma * x)};
+    let integral : f64 = integral::integrate(to_integrate, (lambda_minus, lambda_plus), integral::Integral::G30K61(GK_PARAMETER));
+    return integral
+}
