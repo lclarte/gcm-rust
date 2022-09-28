@@ -2,7 +2,7 @@ use peroxide::numerical::*;
 use statrs::function::logistic;
 use std::f64::consts::PI;
 
-use crate::gcmrust::{data_models::base_partition::Partition, utility::constants::*};
+use crate::gcmrust::{data_models::base_partition::{Partition, NormalizedChannel}, utility::constants::*};
 
 static NORMALIZED_PSEUDO_BAYES_BOUND : f64 = 10.0;
 
@@ -26,6 +26,10 @@ fn ddz0_integrand(z : f64, y : f64, w : f64, sqrt_v : f64, beta : f64) -> f64 {
         
 pub struct NormalizedPseudoBayesLogistic {
     pub beta  : f64
+}
+
+impl NormalizedChannel for NormalizedPseudoBayesLogistic {
+    
 }
 
 impl NormalizedPseudoBayesLogistic {

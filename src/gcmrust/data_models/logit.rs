@@ -3,6 +3,8 @@ use peroxide::numerical::integral;
 use std::f64::consts::PI;
 use crate::gcmrust::{data_models::base_partition, channels::base_channel::Channel, utility::constants::*};
 
+use super::base_partition::NormalizedChannel;
+
 
 static LOGIT_QUAD_BOUND : f64 = INTEGRAL_BOUNDS; 
 pub struct Logit {
@@ -41,7 +43,22 @@ impl base_partition::Partition for Logit {
     }
 
     fn ddz0(&self, y : f64, w : f64, v : f64) -> f64 {
-        panic!("Not implemented yet !");
+        if self.noise_variance < 10.0_f64.powi(-10) {
+            let integrand = |z : f64| -> f64 { (z * z) * logistic::logistic(y * (z * v.sqrt() + w)) * (- z*z / 2.0).exp()  };
+            let integrale = integral::integrate(integrand, (-LOGIT_QUAD_BOUND, LOGIT_QUAD_BOUND), integral::Integral::G30K61(GK_PARAMETER))/ (2.0 * PI * v).sqrt();
+            let z0 = self.z0(y, w, v);
+            return - z0 / v + integrale / v;
+        }
+        else {
+            let integrand = |z : f64| -> f64 { (z * z) * noisy_sigmoid_likelihood(y * (z * v.sqrt() + w), self.noise_variance.sqrt()) * (- z*z / 2.0).exp()};
+            let integrale = integral::integrate(integrand, (-LOGIT_QUAD_BOUND, LOGIT_QUAD_BOUND), integral::Integral::G30K61(GK_PARAMETER)) / (2.0 * PI * v).sqrt();
+            let z0 = self.z0(y, w, v);
+            return - z0 / v + integrale / v;
+        }
     }
 
+}
+
+impl NormalizedChannel for Logit {
+    
 }

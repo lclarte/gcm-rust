@@ -40,3 +40,6 @@ T : Partition
     }
 }
 
+pub trait NormalizedChannel {
+    
+}

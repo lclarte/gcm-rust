@@ -2,6 +2,8 @@ use statrs::function::*;
 use std::f64::consts::PI;
 use crate::gcmrust::data_models::base_partition;
 
+use super::base_partition::NormalizedChannel;
+
 pub struct Probit {
     pub noise_variance : f64
 }
@@ -22,4 +24,8 @@ impl base_partition::Partition for Probit {
     fn ddz0(&self, y : f64, w : f64, v : f64) -> f64 {
         panic!("Not implemented yet !")
     }
+}
+
+impl NormalizedChannel for Probit {
+    
 }

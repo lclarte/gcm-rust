@@ -34,15 +34,11 @@ pub fn dz0_integrand(z : f64, y : f64, w : f64, sqrt_v : f64, beta : f64) -> f64
 }
 
 fn ddz0_integrand(z : f64, y : f64, w : f64, sqrt_v : f64, beta : f64) -> f64 {
-    return (z*z) *   likelihood(y * (z * sqrt_v + w), beta) * (-z*z / 2.0).exp() / (2.0 * PI).sqrt();
+    return (z*z) * likelihood(y * (z * sqrt_v + w), beta) * (-z*z / 2.0).exp() / (2.0 * PI).sqrt();
 }
 
 
 // Definition de la structure 
-
-/*
-TODO : Convertir les structures en classe Python
-*/
 
 pub struct PseudoBayesLogistic {
     pub beta  : f64
