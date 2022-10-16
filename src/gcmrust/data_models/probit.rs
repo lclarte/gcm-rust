@@ -14,7 +14,7 @@ pub struct Probit {
 }
 
 fn probit_likelihood(z : f64) -> f64 {
-    0.5 * erf::erfc(z / 2.0_f64.sqrt())
+    0.5 * erf::erfc(- z / 2.0_f64.sqrt())
 }
 
 impl Partition for Probit {
@@ -47,7 +47,7 @@ impl Probit {
             |z : f64| -> f64 { probit_likelihood(( z * variance.sqrt() + mean) / self.noise_variance.sqrt()).powi(2) * (- z*z / 2.0).exp() },
             (-INTEGRAL_BOUNDS, INTEGRAL_BOUNDS),
             integral::Integral::G30K61(GK_PARAMETER)
-        )
+        ) / (2.0 * PI).sqrt()
 
     }
 }

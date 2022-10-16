@@ -40,10 +40,10 @@ pub fn conditional_expectation_logit(m : f64, q : f64, delta_teacher : f64, rho 
     let conditional_variance = rho - m * m / q;
 
     let model = Logit {
-        noise_variance : 0.0
+        noise_variance : delta_teacher
     };
 
-    return model.z0(1.0, conditional_mean, conditional_variance + delta_teacher);
+    return model.z0(1.0, conditional_mean, conditional_variance);
     
 }
 
@@ -65,18 +65,18 @@ pub fn conditional_variance_logit(m : f64, q : f64, delta_teacher : f64, rho : f
     let conditional_expectation : f64 = conditional_expectation_logit(m, q, delta_teacher, rho, student_local_field);
     
     let model = Logit {
-        noise_variance : 0.0
+        noise_variance : delta_teacher
     };
 
-    return model.squared_likelihood_expectation(conditional_expectation, rho - m * m / q + delta_teacher) - conditional_expectation.powi(2);
+    return model.squared_likelihood_expectation(m / q * student_local_field, rho - m * m / q) - conditional_expectation.powi(2);
 }
 
 pub fn conditional_variance_probit(m : f64, q : f64, delta_teacher : f64, rho : f64, student_local_field : f64) -> f64 {
-    let conditional_expectation : f64 = conditional_expectation_logit(m, q, delta_teacher, rho, student_local_field);
+    let conditional_expectation : f64 = conditional_expectation_probit(m, q, delta_teacher, rho, student_local_field);
     
     let model = Probit {
         noise_variance : delta_teacher
     };
 
-    return model.squared_likelihood_expectation(conditional_expectation, rho - m * m / q) - conditional_expectation.powi(2);
+    return model.squared_likelihood_expectation(m / q * student_local_field, rho - m * m / q) - conditional_expectation.powi(2);
 }
