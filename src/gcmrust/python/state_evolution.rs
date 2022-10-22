@@ -30,10 +30,11 @@ fn erm_state_evolution_gcm(alpha : f64, delta : f64, gamma : f64, kappa1 : f64, 
     let channel = channels::erm_logistic::ERMLogistic {
     };
 
-    let additional_variance = utility::kappas::get_additional_noise_variance_from_kappas(kappa1, kappastar, gamma);
+    let additional_variance = rho * utility::kappas::get_additional_noise_variance_from_kappas(kappa1, kappastar, gamma);
     
     let noise_variance = delta + additional_variance;
     let prior = data_models::gcm::GCMPrior {
+        teacher_norm : rho,
         kappa1 : kappa1,
         kappastar : kappastar,
         gamma : gamma,
@@ -92,11 +93,13 @@ fn erm_state_evolution_matching(alpha : f64, delta : f64, lambda_ : f64, rho : f
 
 #[pyfunction]
 fn pseudo_bayes_state_evolution_gcm(alpha : f64, beta : f64, delta : f64, gamma : f64, kappa1 : f64, kappastar : f64, lambda_ : f64, rho : f64, data_model : String, se_tolerance : f64, relative_tolerance : bool, normalized : bool, verbose : bool) -> (f64, f64, f64, f64, f64, f64) {
-    let additional_variance = utility::kappas::get_additional_noise_variance_from_kappas(kappa1, kappastar, gamma);
+    // The rho factor comes from the scalar product between the teacher and the noise vector
+    let additional_variance = rho * utility::kappas::get_additional_noise_variance_from_kappas(kappa1, kappastar, gamma);
     let noise_variance = delta + additional_variance;
     
     if normalized {    
         let prior = data_models::gcm::GCMPriorPseudoBayes {
+            teacher_norm : rho,
             kappa1 : kappa1,
             kappastar : kappastar,
             gamma : gamma,
@@ -114,7 +117,7 @@ fn pseudo_bayes_state_evolution_gcm(alpha : f64, beta : f64, delta : f64, gamma 
             let data_model_partition = data_models::logit::Logit {
                 noise_variance : noise_variance
             };
-            let (m, q, v, mhat, qhat, vhat) = se.state_evolution(alpha,   &channel, &data_model_partition, &prior);
+            let (m, q, v, mhat, qhat, vhat) = se.state_evolution(alpha, &channel, &data_model_partition, &prior);
             return (m, q, v, mhat, qhat, vhat);
         }
 
@@ -131,6 +134,7 @@ fn pseudo_bayes_state_evolution_gcm(alpha : f64, beta : f64, delta : f64, gamma 
     }
     else {
         let prior = data_models::gcm::GCMPriorPseudoBayes {
+            teacher_norm : rho,
             kappa1 : kappa1,
             kappastar : kappastar,
             gamma : gamma,
@@ -216,10 +220,11 @@ fn pseudo_bayes_state_evolution_matching(alpha : f64, beta : f64, delta : f64, l
 
 #[pyfunction]
 fn bayes_optimal_state_evolution_gcm(alpha : f64, delta : f64, gamma : f64, kappa1 : f64, kappastar : f64, rho : f64, data_model : String, se_tolerance : f64, relative_tolerance : bool, verbose : bool) -> (f64, f64, f64, f64, f64, f64) {
-    let additional_variance = utility::kappas::get_additional_noise_variance_from_kappas(kappa1, kappastar, gamma);
+    let additional_variance = rho * utility::kappas::get_additional_noise_variance_from_kappas(kappa1, kappastar, gamma);
     let noise_variance = delta + additional_variance;
 
     let prior = data_models::gcm::GCMPriorBayesOptimal {
+        teacher_norm : rho,
         gamma : gamma,
         rho : rho - additional_variance,
         kappa1 : kappa1,
@@ -285,7 +290,7 @@ fn bayes_optimal_state_evolution_matching(alpha : f64, delta : f64, rho : f64, d
 
 #[pyfunction]
 fn pseudo_bayes_ridge_state_evolution_gcm(alpha : f64, delta_student : f64, delta_teacher : f64, gamma : f64, kappa1 : f64, kappastar : f64, lambda_ : f64, rho : f64, se_tolerance : f64, relative_tolerance : bool, verbose : bool) -> (f64, f64, f64, f64, f64, f64) {
-    let additional_variance = utility::kappas::get_additional_noise_variance_from_kappas(kappa1, kappastar, gamma);
+    let additional_variance = rho * utility::kappas::get_additional_noise_variance_from_kappas(kappa1, kappastar, gamma);
     let se =se::state_evolution::StateEvolution{
         init_m : 0.01,
         init_q : 0.01, 
@@ -305,6 +310,7 @@ fn pseudo_bayes_ridge_state_evolution_gcm(alpha : f64, delta_student : f64, delt
     };
 
     let prior = data_models::gcm::GCMPriorPseudoBayes {
+        teacher_norm : rho,
         kappa1 : kappa1,
         kappastar : kappastar,
         gamma : gamma,
@@ -335,6 +341,7 @@ fn erm_ridge_state_evolution_gcm(alpha : f64, gamma : f64, kappa1 : f64, kappast
     };
 
     let prior = data_models::gcm::GCMPrior {
+        teacher_norm : rho,
         kappa1 : kappa1,
         kappastar : kappastar,
         gamma : gamma,

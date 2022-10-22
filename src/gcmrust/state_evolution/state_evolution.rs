@@ -7,7 +7,7 @@ use crate::gcmrust::channels::normalized_pseudo_bayes_logistic::NormalizedPseudo
 use crate::gcmrust::data_models::base_prior::PseudoBayesPrior;
 use crate::gcmrust::state_evolution::integrals;
 
-static MAX_ITER_ERM   : i16 = 500;
+static MAX_ITER_ERM   : i16 = 100;
 
 //
 

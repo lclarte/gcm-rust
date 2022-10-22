@@ -20,9 +20,10 @@ pub fn evidence(_py : Python, m : &PyModule)  -> PyResult<()> {
 #[pyfunction]
 fn pseudo_bayes_log_evidence_gcm
 (m : f64, q : f64, v : f64, mhat : f64, qhat : f64, vhat : f64, alpha : f64, beta : f64, delta : f64, gamma : f64, kappa1 : f64, kappastar : f64, lambda : f64, rho : f64, data_model : String) -> f64 {
-    let additional_variance =utility::kappas::get_additional_noise_variance_from_kappas(kappa1, kappastar, gamma);
+    let additional_variance = rho * utility::kappas::get_additional_noise_variance_from_kappas(kappa1, kappastar, gamma);
 
     let prior = data_models::gcm::GCMPriorPseudoBayes {
+        teacher_norm : rho,
         rho : rho - additional_variance,
         beta_times_lambda : beta * lambda,
         gamma : gamma,
@@ -75,10 +76,11 @@ fn pseudo_bayes_log_evidence_matching(m : f64, q : f64, v : f64, mhat : f64, qha
 
 #[pyfunction]
 fn bayes_optimal_log_evidence_gcm(m : f64, q : f64, v : f64, mhat : f64, qhat : f64, vhat : f64, alpha : f64, delta : f64, gamma : f64, kappa1 : f64, kappastar : f64, rho : f64, data_model : String) -> f64 {
-    let additional_variance =utility::kappas::get_additional_noise_variance_from_kappas(kappa1, kappastar, gamma);
+    let additional_variance = rho * utility::kappas::get_additional_noise_variance_from_kappas(kappa1, kappastar, gamma);
     let noise_variance = delta + additional_variance;
 
     let prior = data_models::gcm::GCMPriorBayesOptimal {
+        teacher_norm : rho,
         gamma : gamma,
         rho : rho - additional_variance,
         kappa1 : kappa1,

@@ -9,6 +9,7 @@ pub struct GCMPrior {
     pub gamma : f64,
     pub lambda : f64,
     pub rho : f64,
+    pub teacher_norm : f64
 }
 
 pub struct GCMPriorPseudoBayes {
@@ -17,30 +18,16 @@ pub struct GCMPriorPseudoBayes {
     pub gamma : f64,
     pub beta_times_lambda : f64,
     pub rho : f64,
+    pub teacher_norm : f64
 }
 
-// Hypothesis : evidence maximization does not work cuz the gaussian is on a space to big. 
-// If we assume that the gaussian is on the same subspace as the teacher prior, then maybe evidence maximization will work ?
-pub struct GCMPriorProjectedPseudoBayes {
-    pub kappa1 : f64,
-    pub kappastar : f64,
-    pub gamma : f64,
-    pub beta_times_lambda : f64,
-    pub rho : f64,
-}
 
 pub struct GCMPriorBayesOptimal {
     pub kappa1 : f64,
     pub kappastar : f64,
     pub gamma : f64,
     pub rho : f64,
-}
-
-pub struct ProjectedGCMPriorBayesOptimal {
-    pub kappa1 : f64,
-    pub kappastar : f64,
-    pub gamma : f64,
-    pub rho : f64,
+    pub teacher_norm : f64
 }
 
 //////////
@@ -55,6 +42,32 @@ impl base_prior::ParameterPrior for GCMPrior {
     }
 
     fn update_overlaps(&self, mhat : f64, qhat : f64, vhat : f64) -> (f64, f64, f64) {
+        let kk1 = self.kappa1.powi(2);
+        let kkstar = self.kappastar.powi(2);
+
+        // Refer to the integrals in the GCM paper  (Equations A.34)
+        // NOTE : Solve the issue with vhat disappearing from the free energy in the beta -> \infty limit
+
+        let omega_z = |z : f64| -> f64 { kk1 * z + kkstar };
+        let phi_t_phi_z = |z : f64| -> f64 { self.teacher_norm * kk1 * z };
+
+        // 1) Compute the integral for v 
+
+        let v_integrand = |z : f64| -> f64 { omega_z(z) / ( self.lambda + vhat * omega_z(z) ) };
+        let v : f64 = kappas::marcenko_pastur_integral(&v_integrand, self.get_gamma());
+
+        // 2) Compute the integral for q
+        
+        let q_integrand = |z : f64 | -> f64 {(qhat * omega_z(z) + mhat.powi(2) * phi_t_phi_z(z)) * omega_z(z) / (self.lambda + vhat * omega_z(z)).powi(2)};
+        let q = kappas::marcenko_pastur_integral(&q_integrand, self.get_gamma());
+
+        // 3) Compute the integral for m
+        
+        let m_integrand = |z : f64| -> f64 { phi_t_phi_z(z) / (self.lambda + vhat * omega_z(z))};
+        let m = mhat * self.get_gamma().sqrt() * kappas::marcenko_pastur_integral(&m_integrand, self.get_gamma());
+        return (m, q, v);
+
+        /*
         let alpha  = self.gamma;
         let gamma  = 1.0 / self.gamma;
             
@@ -62,7 +75,6 @@ impl base_prior::ParameterPrior for GCMPrior {
         let kk     = self.kappastar * self.kappastar;
         let alphap = ( sigma * (1.0 + alpha.sqrt())).powi(2);
         let alpham = ( sigma * (1.0 - alpha.sqrt())).powi(2);
-
         if self.lambda == 0.0 {
             let den    = 1.0 + kk * vhat;
             let aux    = (((alphap+kk)*vhat+1.0)*((alpham+kk) * vhat + 1.0)).sqrt();
@@ -99,7 +111,8 @@ impl base_prior::ParameterPrior for GCMPrior {
             let m = mhat * (self.gamma).sqrt() * im;
             let q = iq;
             return (m, q, v);
-        }  
+        } 
+        */
     }
 
     fn psi_w(&self, mhat : f64, qhat : f64, vhat : f64) -> f64 {
@@ -123,6 +136,7 @@ impl base_prior::ParameterPrior for GCMPriorPseudoBayes {
     }
 
     fn update_overlaps(&self, mhat : f64, qhat : f64, vhat : f64) -> (f64, f64, f64) {
+        /* 
         let alpha      = self.gamma;
         let gamma      = 1.0 / self.gamma;
                 
@@ -130,7 +144,6 @@ impl base_prior::ParameterPrior for GCMPriorPseudoBayes {
         let kk         = self.kappastar * self.kappastar;
         let alphap     = ( sigma * (1.0 + alpha.sqrt())).powi(2);
         let alpham     = ( sigma * (1.0 - alpha.sqrt())).powi(2);
-
         if  self.beta_times_lambda == 0.0 {
             let den    = 1.0 + kk * vhat;
             let aux    = (((alphap+kk)*vhat+1.0)*((alpham+kk) * vhat + 1.0)).sqrt();
@@ -168,17 +181,17 @@ impl base_prior::ParameterPrior for GCMPriorPseudoBayes {
             let q = iq;
             return (m, q, v);
         }  
+        */
 
         // This version seems to work
 
-        /*
         let kk1 = self.kappa1.powi(2);
         let kkstar = self.kappastar.powi(2);
 
         // Refer to the integrals in the GCM paper  (Equations A.34)
 
         let omega_z = |z : f64| -> f64 { kk1 * z + kkstar };
-        let phi_t_phi_z = |z : f64| -> f64 { kk1 * z };
+        let phi_t_phi_z = |z : f64| -> f64 { self.teacher_norm * kk1 * z };
 
         // 1) Compute the integral for v 
 
@@ -195,25 +208,13 @@ impl base_prior::ParameterPrior for GCMPriorPseudoBayes {
         let m_integrand = |z : f64| -> f64 {phi_t_phi_z(z) / (self.beta_times_lambda + vhat * omega_z(z))};
         let m = mhat * self.get_gamma().sqrt() * kappas::marcenko_pastur_integral(&m_integrand, self.get_gamma());
         return (m, q, v);
-        */
-
     }
     
     fn psi_w(&self, mhat : f64, qhat : f64, vhat : f64) -> f64 {
-        
-        /*
-
-        let (kk1, kkstar) = (self.kappa1 * self.kappa1, self.kappastar * self.kappastar);
-        let to_integrate_1 = |x : f64| -> f64 {(self.beta_times_lambda + vhat * (kk1 * x + kkstar)).ln()};
-        let to_integrate_2 = |x : f64| -> f64 { (mhat.powi(2) * kk1 * x + qhat * (kk1 * x + kkstar)) / (self.beta_times_lambda + vhat * (kk1 * x + kkstar))};
-        return - 0.5 * kappas::marcenko_pastur_integral(&to_integrate_1, self.gamma) + 0.5 * kappas::marcenko_pastur_integral(&to_integrate_2, self.gamma);
-
-        */
-
         let (kk1, kkstar) = (self.kappa1 * self.kappa1, self.kappastar * self.kappastar);
 
         let omega_z = |z : f64| -> f64 { kk1 * z + kkstar };
-        let phi_t_phi_z = |z : f64| -> f64 { kk1 * z };
+        let phi_t_phi_z = |z : f64| -> f64 { self.teacher_norm * kk1 * z };
 
         let to_integrate_1 = |x : f64| -> f64 { (self.beta_times_lambda + vhat * omega_z(x)).ln() };
         let to_integrate_2 = |x : f64| -> f64 { (mhat.powi(2) * phi_t_phi_z(x) + qhat * omega_z(x)) / (self.beta_times_lambda + vhat * omega_z(x)) };
@@ -243,7 +244,7 @@ impl base_prior::ParameterPrior for GCMPriorBayesOptimal {
     fn update_overlaps(&self, mhat : f64, qhat : f64, vhat : f64) -> (f64, f64, f64) {
         let kk1 = self.kappa1.powi(2);
         let kkstar = self.kappastar.powi(2);
-        let q = self.get_gamma() * qhat * kappas::marcenko_pastur_integral(&|z : f64| -> f64 {(kk1 * z / (kk1 * z + kkstar)).powi(2)  / (1.0 + qhat * (kk1 * z / (kk1 * z + kkstar)))}, self.get_gamma());
+        let q = self.get_gamma() * qhat * kappas::marcenko_pastur_integral(&|z : f64| -> f64 {(kk1 * z * self.teacher_norm / (kk1 * z + kkstar)).powi(2)  / (1.0 + qhat * (kk1 * z * self.teacher_norm / (kk1 * z + kkstar)))}, self.get_gamma());
 
         return (q, q, self.get_rho() - q);
     }
