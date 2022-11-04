@@ -1,36 +1,24 @@
 use peroxide::numerical::*;
 use std::f64::consts::PI;
 use pyo3::prelude::*;
+use statrs::function::*;
 
-use crate::gcmrust::{channels::base_channel, data_models::base_partition::Partition, utility::constants::*};
+use crate::gcmrust::{data_models::base_partition::Partition, utility::constants::*};
 
 static PSEUDO_BAYES_BOUND : f64 = INTEGRAL_BOUNDS;
 
 pub fn likelihood(x : f64, beta : f64) -> f64 {
-    if x > THRESHOLD_L {
-        // Proba \propto exp{- \beta * Energy}, here Energy = log(1 + exp(-x))
-        return ( - beta * (1.0 as f64 + (-x).exp() ).ln() ).exp();
-    }
-    else {
-        return (beta * x).exp();
-    }
+    return logistic::logistic(x).powf(beta);
 }
 
 pub fn z0_integrand(z : f64, y : f64, w : f64, sqrt_v : f64, beta : f64) -> f64 {
-    
     let local_field : f64 = y * (z * sqrt_v + w);
-    return likelihood(local_field, beta) * (- z*z / 2.0).exp();
-
+    return likelihood(local_field, beta) * (- z*z / 2.0).exp() / (2.0 * PI).sqrt();
 }
 
 pub fn dz0_integrand(z : f64, y : f64, w : f64, sqrt_v : f64, beta : f64) -> f64 {
     let local_field : f64 = y * (z * sqrt_v + w);
-    if local_field > THRESHOLD_L {
-        return z *   likelihood(local_field, beta)  * (- z*z / 2.0).exp();
-    }
-    else {
-        return z * (beta * local_field).exp() * (- z*z / 2.0).exp();
-    }
+    return z * likelihood(local_field, beta) * (- z*z / 2.0).exp()  /  (2.0 * PI).sqrt() / sqrt_v;
 }
 
 fn ddz0_integrand(z : f64, y : f64, w : f64, sqrt_v : f64, beta : f64) -> f64 {
@@ -57,7 +45,7 @@ impl Partition for PseudoBayesLogistic{
         // return z0(y, w, v, self.beta, PSEUDO_BAYES_BOUND);
         if v > (10.0_f64).powi(-10) {
             let sqrt_v = v.sqrt();
-            return self.integrate_function(&|z : f64| -> f64 {z0_integrand(z, y, w, sqrt_v, self.beta)}) / (2.0 * PI).sqrt();
+            return self.integrate_function(&|z : f64| -> f64 {z0_integrand(z, y, w, sqrt_v, self.beta)}) ;
         }
     
         else {
@@ -68,7 +56,7 @@ impl Partition for PseudoBayesLogistic{
     fn dz0(&self, y : f64, w : f64, v : f64) -> f64 {
         // return dz0(y, w, v, self.beta, PSEUDO_BAYES_BOUND);
         let sqrt_v = (v).sqrt();
-    return self.integrate_function(&|z : f64| -> f64 {dz0_integrand(z, y, w, sqrt_v, self.beta)}) /  (2.0 * PI * v).sqrt();
+    return self.integrate_function(&|z : f64| -> f64 {dz0_integrand(z, y, w, sqrt_v, self.beta)});
     }
 
     fn ddz0(&self, y : f64, w : f64, v : f64) -> f64 {
@@ -81,7 +69,6 @@ impl Partition for PseudoBayesLogistic{
         return - z0 / v + integrale / v;
     }
 }
-
 
 // part for the Python
 
