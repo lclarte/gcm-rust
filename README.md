@@ -12,7 +12,7 @@ Use `maturin develop` to compile + install the library.
 
 # Testing 
 
-To make sure things are working, run  
+To make sure the module is correctly loaded, run  
 ```
 >>> import gcmpyo3
 >>> gcmpyo3.test()
