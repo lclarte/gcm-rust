@@ -40,11 +40,10 @@ pub fn conditional_expectation_logit(m : f64, q : f64, delta_teacher : f64, rho 
     let conditional_variance = rho - m * m / q;
 
     let model = Logit {
-        noise_variance : delta_teacher
+        noise_variance : 0.0
     };
 
-    return model.z0(1.0, conditional_mean, conditional_variance);
-    
+    return model.z0(1.0, conditional_mean, conditional_variance + delta_teacher);
 }
 
 pub fn conditional_expectation_probit(m : f64, q : f64, delta_teacher : f64, rho : f64, student_local_field : f64) -> f64 {

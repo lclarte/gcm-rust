@@ -4,6 +4,7 @@ use std::f64::consts::PI;
 use pyo3::prelude::*;
 
 use crate::gcmrust::utility::constants::*;
+use super::super::channels::base_channel::Channel;
 use super::base_partition::{Partition, NormalizedChannel};
 
 
@@ -96,5 +97,13 @@ impl Logit {
 
     fn call_ddz0(&self, y : f64, w : f64, v : f64) -> f64 {
         return self.ddz0(y, w, v);
+    }
+
+    fn call_f0(&self, y : f64, w : f64, v : f64) -> f64 {
+        return self.f0(y, w, v);
+    }
+
+    fn call_df0(&self, y : f64, w : f64, v : f64) -> f64 {
+        return self.df0(y, w, v);
     }
 }
