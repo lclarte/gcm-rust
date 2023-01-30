@@ -19,6 +19,8 @@ pub mod gcmrust {
 
         pub mod logit;
         pub mod probit;
+        pub mod piecewise_affine;
+        pub mod piecewise_constant;
         
         pub mod matching;
         pub mod gcm;
@@ -68,8 +70,12 @@ fn gcmpyo3(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
 
     m.add_class::<channels::pseudo_bayes_logistic::PseudoBayesLogistic>()?;
     m.add_class::<channels::normalized_pseudo_bayes_logistic::NormalizedPseudoBayesLogistic>()?;
+    
+    
     m.add_class::<data_models::logit::Logit>()?;
     m.add_class::<data_models::probit::Probit>()?;
+    m.add_class::<data_models::piecewise_constant::PiecewiseConstant>()?;
+    m.add_class::<data_models::piecewise_affine::PiecewiseAffine>()?;
 
     m.add_function(wrap_pyfunction!(test, m)?)?;
 
