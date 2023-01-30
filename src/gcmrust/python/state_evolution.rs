@@ -70,25 +70,41 @@ fn erm_state_evolution_matching(alpha : f64, delta : f64, lambda_ : f64, rho : f
 
     let se = se::state_evolution::StateEvolution { init_m : 0.01, init_q : 0.01, init_v : 0.99, se_tolerance : se_tolerance, relative_tolerance : relative_tolerance, verbose : verbose };
 
+    // for logit and probit, delta is the variance of the noise in the likelihood
+    // for the piecewise constant, delta is such that on [-delta, delta] the likelihood is 0.5
+    // for the piecewise affine, delta is such that on [-delta, delta] the likelihood goes from 0 to 1
     let noise_variance = delta;
+    let (m, q, v, mhat, qhat, vhat) : (f64, f64, f64, f64, f64, f64);
 
+    // TODO : Learn Rust to simplify the code here
     if data_model == "logit" {
         let data_model_partition = data_models::logit::Logit {
             noise_variance : noise_variance
         };
-        let (m, q, v, mhat, qhat, vhat) = se.state_evolution(alpha, &channel, &data_model_partition, &prior);
-        return (m, q, v, mhat, qhat, vhat);
+        (m, q, v, mhat, qhat, vhat) = se.state_evolution(alpha, &channel, &data_model_partition, &prior);
     }
     else if data_model == "probit" {
         let data_model_partition = data_models::probit::Probit {
             noise_variance : noise_variance
         };
-        let (m, q, v, mhat, qhat, vhat) = se.state_evolution(alpha, &channel, &data_model_partition, &prior);
-        return (m, q, v, mhat, qhat, vhat);
-    }    
+        (m, q, v, mhat, qhat, vhat) = se.state_evolution(alpha, &channel, &data_model_partition, &prior);
+    }
+    else if data_model == "piecewise_constant" {
+        let data_model_partition = data_models::piecewise_constant::PiecewiseConstant {
+            bound : delta
+        };
+        (m, q, v, mhat, qhat, vhat) = se.state_evolution(alpha, &channel, &data_model_partition, &prior);
+    }
+    else if data_model == "piecewise_affine" {
+        let data_model_partition = data_models::piecewise_affine::PiecewiseAffine {
+            bound : delta
+        };
+        (m, q, v, mhat, qhat, vhat) = se.state_evolution(alpha, &channel, &data_model_partition, &prior);
+    }
     else {
         panic!("Not good data model!");
     }
+    return (m, q, v, mhat, qhat, vhat);
 }
 
 #[pyfunction]
