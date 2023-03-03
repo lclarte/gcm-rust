@@ -18,6 +18,7 @@ fn noisy_sigmoid_likelihood(z : f64, noise_std : f64) -> f64 {
     // The exact version of the likelihood is a bit too slow, let's use an approximate form 
     // let integrand = |xi : f64| -> f64 { logistic::logistic( xi * noise_std + z ) * (- xi*xi / 2.0).exp() / (2.0 * PI).sqrt() };
     // return integral::integrate(integrand, (-LOGIT_QUAD_BOUND, LOGIT_QUAD_BOUND), integral::Integral::G30K61(GK_PARAMETER));
+    // when noise_std = 0.0, normally it's the "correct" rigorous expression
     return logistic::logistic( z / (1.0 + (LOGIT_PROBIT_SCALING * noise_std).powi(2) ).sqrt() );
 }
 

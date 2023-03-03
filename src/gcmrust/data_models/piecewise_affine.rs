@@ -37,6 +37,7 @@ impl Partition for PiecewiseAffine {
             integral_pm_a + integral_a_infty
         }
         else {
+            // for y = -1.0
             1.0 - self.z0(1.0, w, v)
         }
 
@@ -48,6 +49,7 @@ impl Partition for PiecewiseAffine {
             return (-erf::erf((-self.bound + w)/(2.0 * v).sqrt()) + erf::erf((self.bound + w)/(2.0 * v).sqrt())) / (4.0 * self.bound);
         }
         else {
+            // for y = -1.0
             return - self.dz0(1.0, w, v);
         }
     }
@@ -58,6 +60,7 @@ impl Partition for PiecewiseAffine {
             return -((-((self.bound + w).powi(2)/(2.0 * v))).exp() * (- 1.0 + ((2.0 * self.bound * w)/v).exp()))/(2.0 * self.bound * (2.0 * PI * v).sqrt());
         }
         else {
+            // for y = -1.0
             return - self.ddz0(1.0, w, v);
         }
 
