@@ -6,7 +6,7 @@ use std::f64::consts::PI;
 
 use crate::gcmrust::data_models::base_partition::Partition;
 use crate::gcmrust::utility::constants::*;
-use super::base_partition::NormalizedChannel;
+use super::base_partition::{NormalizedChannel, self};
 
 #[pyclass(unsendable)]
 pub struct Probit {
@@ -34,6 +34,10 @@ impl Partition for Probit {
     fn ddz0(&self, y : f64, w : f64, v : f64) -> f64 {
         let noisy_v = v + self.noise_variance;
         return - 2.0 * y * w * (- (w*w) / (2.0 * noisy_v)).exp() / (2.0 * PI * noisy_v).sqrt();
+    }
+
+    fn get_output_type(&self) -> base_partition::OutputType {
+        return base_partition::OutputType::BinaryClassification;
     }
 }
 

@@ -6,6 +6,7 @@ use pyo3::prelude::*;
 use crate::gcmrust::utility::constants::*;
 use super::super::channels::base_channel::Channel;
 use super::base_partition::{Partition, NormalizedChannel};
+use super::base_partition;
 
 static LOGIT_QUAD_BOUND : f64 = 10.0; 
 
@@ -40,6 +41,10 @@ impl Partition for Logit {
         let z0 = self.z0(y, w, v);
         return - z0 / v + integrale / v;
         
+    }
+
+    fn get_output_type(&self) -> base_partition::OutputType {
+        return base_partition::OutputType::BinaryClassification;
     }
 
 }

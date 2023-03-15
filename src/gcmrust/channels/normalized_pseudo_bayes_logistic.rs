@@ -3,7 +3,7 @@ use pyo3::{pyclass, pymethods, PyResult};
 use statrs::function::logistic;
 use std::f64::consts::PI;
 
-use crate::gcmrust::{data_models::base_partition::{Partition, NormalizedChannel}, utility::constants::*};
+use crate::gcmrust::{data_models::base_partition::{Partition, NormalizedChannel, self}, utility::constants::*};
 
 static NORMALIZED_PSEUDO_BAYES_BOUND : f64 = 10.0;
 
@@ -67,6 +67,11 @@ impl Partition for NormalizedPseudoBayesLogistic{
         let integrale = self.integrate_function(&| z : f64| -> f64 {ddz0_integrand(z, y, w, sqrt_v, self.beta)});
         return - z0 / v + integrale / v;
     }
+
+    fn get_output_type(&self) -> base_partition::OutputType {
+        return base_partition::OutputType::BinaryClassification;
+    }
+
 }
 
 #[pymethods]

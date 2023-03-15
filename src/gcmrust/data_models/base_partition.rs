@@ -1,10 +1,20 @@
+use std::process::Output;
+
 use crate::gcmrust::channels::base_channel::Channel;
+
+#[derive(PartialEq)]
+pub enum OutputType {
+    BinaryClassification,
+    Regression
+}
 
 pub trait Partition {
     /*
     Use notably for the teacher whose likelihood function generates a
     measure of probability through z0
     */
+    fn get_output_type(&self) -> OutputType;
+
     fn z0(&self, y : f64, w : f64, v : f64) -> f64;
     fn dz0(&self, y : f64, w : f64, v : f64) -> f64;
     fn ddz0(&self, y : f64, w : f64, v : f64) -> f64;

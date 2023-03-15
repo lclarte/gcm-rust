@@ -5,6 +5,19 @@ use crate::gcmrust::utility;
 use crate::gcmrust::data_models;
 use crate::gcmrust::state_evolution as se;
 
+/*
+Notation : 
+    - n: num of samples
+    - p : parameters = student's dimsension
+    - d : dimension = teachers' dimension 
+    - alpha = n / p
+    - gamma = p / d 
+    - delta = variance of noiser 
+    - kappa1, kappastar : property of the activation, cf. paper
+    - rho : norm of the teacher \| wstar \|^2 (before the projection)
+
+ */
+
 #[pymodule]
 pub fn state_evolution(_py: Python, m: &PyModule) -> PyResult<()> {
     // Functions for classification
@@ -19,7 +32,10 @@ pub fn state_evolution(_py: Python, m: &PyModule) -> PyResult<()> {
     // Functions for regression
     
     m.add_function(wrap_pyfunction!(pseudo_bayes_ridge_state_evolution_gcm, m)?)?;
+    m.add_function(wrap_pyfunction!(pseudo_bayes_ridge_state_evolution_matching, m)?)?;
     m.add_function(wrap_pyfunction!(erm_ridge_state_evolution_gcm, m)?)?;
+    m.add_function(wrap_pyfunction!(erm_ridge_state_evolution_matching, m)?)?;
+    m.add_function(wrap_pyfunction!(bayes_optimal_regression_state_evolution_gcm, m)?)?;
     Ok(())
 }
 
@@ -306,40 +322,17 @@ fn bayes_optimal_state_evolution_matching(alpha : f64, delta : f64, rho : f64, d
 
 #[pyfunction]
 fn pseudo_bayes_ridge_state_evolution_gcm(alpha : f64, delta_student : f64, delta_teacher : f64, gamma : f64, kappa1 : f64, kappastar : f64, lambda_ : f64, rho : f64, se_tolerance : f64, relative_tolerance : bool, verbose : bool) -> (f64, f64, f64, f64, f64, f64) {
-    let additional_variance = rho * utility::kappas::get_additional_noise_variance_from_kappas(kappa1, kappastar, gamma);
-    let se =se::state_evolution::StateEvolution{
-        init_m : 0.01,
-        init_q : 0.01, 
-        init_v : 0.99,
-        se_tolerance : se_tolerance,
-        relative_tolerance : relative_tolerance,
-        verbose : verbose
-    };
-
-    let teacher_channel = data_models::gaussian::GaussianChannel {
-        // shouldn't the teacher have 0 variance ? 
-        variance : delta_teacher + additional_variance
-    };
-
-    let student_channel = data_models::gaussian::GaussianChannel {
-        variance : delta_student
-    };
-
-    let prior = data_models::gcm::GCMPriorPseudoBayes {
-        teacher_norm : rho,
-        kappa1 : kappa1,
-        kappastar : kappastar,
-        gamma : gamma,
-        // here there is no beta in the normalized case, so just lambda 
-        beta_times_lambda : lambda_,
-        rho : rho - additional_variance
-    };
-
-    return se.state_evolution(alpha, &student_channel, &teacher_channel, &prior);
+    erm_ridge_state_evolution_gcm(alpha, delta_student, delta_teacher, gamma, kappa1, kappastar, lambda_, rho, se_tolerance, relative_tolerance, verbose)
 }
 
 #[pyfunction]
-fn erm_ridge_state_evolution_gcm(alpha : f64, gamma : f64, kappa1 : f64, kappastar : f64, lambda_ : f64, rho : f64, se_tolerance : f64, relative_tolerance : bool, verbose : bool) -> (f64, f64, f64, f64, f64, f64){
+fn pseudo_bayes_ridge_state_evolution_matching(alpha : f64, delta_student : f64, delta_teacher : f64, lambda_ : f64, rho : f64, se_tolerance : f64, relative_tolerance : bool, verbose : bool) -> (f64, f64, f64, f64, f64, f64) {
+    erm_ridge_state_evolution_matching(alpha, delta_student, delta_teacher, lambda_, rho, se_tolerance, relative_tolerance, verbose)
+}
+
+#[pyfunction]
+fn bayes_optimal_regression_state_evolution_gcm(alpha : f64, delta_teacher : f64, gamma : f64, kappa1 : f64, kappastar : f64, rho : f64, se_tolerance : f64, relative_tolerance : bool, verbose : bool) -> (f64, f64, f64, f64, f64, f64) {
+    let additional_variance = rho * utility::kappas::get_additional_noise_variance_from_kappas(kappa1, kappastar, gamma);
 
     let se = se::state_evolution::StateEvolutionExplicitOverlapUpdate {
         init_m : 0.01,
@@ -352,9 +345,62 @@ fn erm_ridge_state_evolution_gcm(alpha : f64, gamma : f64, kappa1 : f64, kappast
 
     let student_channel = channels::ridge_regression::RidgeChannel {
         alpha : alpha,
-        gamma : gamma,
-        rho : rho
+        // gamma : gamma,
+        rho : rho - additional_variance,
+        student_noise_variance : delta_teacher + additional_variance,
+        teacher_noise_variance : delta_teacher + additional_variance
     };
+
+    let prior = data_models::gcm::GCMPriorBayesOptimal {
+        teacher_norm : rho,
+        kappa1 : kappa1,
+        kappastar : kappastar,
+        gamma : gamma,
+        rho : rho - additional_variance
+    };
+
+    return se.state_evolution(alpha, &student_channel, &prior, true);
+}
+
+#[pyfunction]
+fn erm_ridge_state_evolution_gcm(alpha : f64, delta_student : f64, delta_teacher : f64, gamma : f64, kappa1 : f64, kappastar : f64, lambda_ : f64, rho : f64, se_tolerance : f64, relative_tolerance : bool, verbose : bool) -> (f64, f64, f64, f64, f64, f64){
+    let additional_variance = rho * utility::kappas::get_additional_noise_variance_from_kappas(kappa1, kappastar, gamma);
+    
+    let se = se::state_evolution::StateEvolutionExplicitOverlapUpdate {
+        init_m : 0.01,
+        init_q : 0.01, 
+        init_v : 0.99,
+        se_tolerance : se_tolerance,
+        relative_tolerance : relative_tolerance,
+        verbose : verbose
+    };
+
+    let student_channel = channels::ridge_regression::RidgeChannel {
+        alpha : alpha,
+        // gamma : gamma,
+        rho : rho,
+        student_noise_variance : delta_student,
+        teacher_noise_variance : delta_teacher + additional_variance
+    };
+
+    /*
+    let se = se::state_evolution::StateEvolution {
+        init_m : 0.01, 
+        init_q : 0.01,
+        init_v : 0.99,
+        se_tolerance : se_tolerance,
+        relative_tolerance : relative_tolerance,
+        verbose : verbose
+    };
+
+    let student_channel = channels::ridge_regression::RidgeChannel2 {
+        noise_variance : delta_student
+    };
+    
+    let teacher_model = data_models::gaussian::GaussianPartition {
+        variance : delta_teacher + additional_variance
+    };
+    */
 
     let prior = data_models::gcm::GCMPrior {
         teacher_norm : rho,
@@ -363,8 +409,37 @@ fn erm_ridge_state_evolution_gcm(alpha : f64, gamma : f64, kappa1 : f64, kappast
         gamma : gamma,
         // here there is no beta in the normalized case, so just lambda 
         lambda : lambda_,
-        rho
+        rho : rho - additional_variance
+    };
+    
+    // return se.state_evolution(alpha, &student_channel, &teacher_model, &prior)
+    return se.state_evolution(alpha, &student_channel, &prior, false);
+}
+
+#[pyfunction]
+fn erm_ridge_state_evolution_matching(alpha : f64, delta_student : f64, delta_teacher : f64, lambda_ : f64, rho : f64, se_tolerance : f64, relative_tolerance : bool, verbose : bool) -> (f64, f64, f64, f64, f64, f64){
+    
+    let se = se::state_evolution::StateEvolutionExplicitOverlapUpdate {
+        init_m : 0.01,
+        init_q : 0.01, 
+        init_v : 0.99,
+        se_tolerance : se_tolerance,
+        relative_tolerance : relative_tolerance,
+        verbose : verbose
     };
 
-    return se.state_evolution(alpha, &student_channel, &prior);
+    let student_channel = channels::ridge_regression::RidgeChannel {
+        alpha : alpha,
+        // gamma : 1.0,
+        rho : rho,
+        student_noise_variance : delta_student,
+        teacher_noise_variance : delta_teacher
+    };
+
+    let prior = data_models::matching::MatchingPrior {
+        lambda : lambda_,
+        rho : rho
+    };
+
+    return se.state_evolution(alpha, &student_channel, &prior, false);
 }

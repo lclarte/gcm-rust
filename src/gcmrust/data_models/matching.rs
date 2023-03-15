@@ -26,8 +26,8 @@ impl base_prior::ParameterPrior for MatchingPrior {
     }
     fn update_overlaps(&self, mhat : f64, qhat : f64, vhat : f64) -> (f64, f64, f64) {
         let v = 1. / (self.lambda + vhat);
-        let q = (mhat.powi(2) + qhat) / (self.lambda + vhat).powi(2);
-        let m = mhat / (self.lambda + vhat);
+        let q = (mhat.powi(2) * self.rho + qhat) / (self.lambda + vhat).powi(2);
+        let m = self.rho * mhat / (self.lambda + vhat);
         return (m, q, v);
     }
 
@@ -47,8 +47,8 @@ impl base_prior::ParameterPrior for MatchingPriorPseudoBayes {
     }
     fn update_overlaps(&self, mhat : f64, qhat : f64, vhat : f64) -> (f64, f64, f64) {
         let v = 1. / (self.beta_times_lambda + vhat);
-        let q = (mhat.powi(2) + qhat) / (self.beta_times_lambda + vhat).powi(2);
-        let m = mhat / (self.beta_times_lambda + vhat);
+        let q = (mhat.powi(2) * self.rho + qhat) / (self.beta_times_lambda + vhat).powi(2);
+        let m = self.rho * mhat / (self.beta_times_lambda + vhat);
         return (m, q, v);
     }
 

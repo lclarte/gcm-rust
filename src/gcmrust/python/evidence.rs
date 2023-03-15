@@ -48,6 +48,7 @@ fn pseudo_bayes_log_evidence_gcm(m : f64, q : f64, v : f64, mhat : f64, qhat : f
     }
 }
 
+
 #[pyfunction]
 fn pseudo_bayes_log_evidence_matching(m : f64, q : f64, v : f64, mhat : f64, qhat : f64, vhat : f64, alpha : f64, beta : f64, delta : f64, lambda : f64, rho : f64, data_model : String) -> f64 {
     let prior = data_models::matching::MatchingPriorPseudoBayes {

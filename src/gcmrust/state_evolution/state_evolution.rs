@@ -70,12 +70,13 @@ pub fn update_hatoverlaps(m : f64, q : f64, v : f64, alpha : f64, channel : &imp
     let iq = integrals::integrate_for_qhat(m, q, v, vstar, channel, data_model);
     let iv = integrals::integrate_for_vhat(m, q, v, vstar, channel, data_model);
 
+    // here we multiply by gamma (it's the only role the prior is playing here)
     let (mhat, qhat, vhat) = prior.update_hatoverlaps_from_integrals(im, iq, iv);
-    
     /*
-    let mhat = alpha *  prior.get_gamma().sqrt() * im;
-    let vhat = - alpha * iv;
-    let qhat = alpha * iq;
+    // the above line does this 
+    let mhat = prior.get_gamma().sqrt() * im;
+    let vhat = -iv;
+    let qhat = iq;
     */
 
     return (alpha * mhat, alpha * qhat, alpha * vhat);
@@ -104,7 +105,7 @@ pub struct StateEvolutionExplicitOverlapUpdate {
 
 impl StateEvolutionExplicitOverlapUpdate {
 
-    pub fn state_evolution<C : channels::base_channel::ChannelWithExplicitHatOverlapUpdate, Q : ParameterPrior>(&self, alpha : f64, channel : &C, prior : &Q) -> (f64, f64, f64, f64, f64, f64) {
+    pub fn state_evolution<C : channels::base_channel::ChannelWithExplicitHatOverlapUpdate, Q : ParameterPrior>(&self, alpha : f64, channel : &C, prior : &Q, bayes_optimal : bool) -> (f64, f64, f64, f64, f64, f64) {
         let (mut m, mut q, mut v) = (self.init_m, self.init_q, self.init_v);
         let (mut prev_m, mut prev_q, mut prev_v) : (f64, f64, f64);
         let (mut mhat, mut qhat, mut vhat) : (f64, f64, f64)= (0.0, 0.0, 0.0);
@@ -121,6 +122,17 @@ impl StateEvolutionExplicitOverlapUpdate {
             (prev_m, prev_q, prev_v, prev_mhat, prev_qhat, prev_vhat) = (m, q, v, mhat, qhat, vhat);
             // update hat overlaps
             (mhat, qhat, vhat) = channel.update_hatoverlaps(m, q, v);
+
+            if bayes_optimal {
+                mhat *= prior.get_gamma();
+                qhat *= prior.get_gamma();
+                vhat *= prior.get_gamma();
+
+            }
+            else {
+                mhat *= prior.get_gamma().sqrt();
+            }
+
             // update overlap
             (m, q, v) = prior.update_overlaps(mhat, qhat, vhat);
             

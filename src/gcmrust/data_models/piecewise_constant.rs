@@ -7,7 +7,7 @@ use pyo3::prelude::*;
 
 use crate::gcmrust::utility::constants::*;
 use super::super::channels::base_channel::Channel;
-use super::base_partition::{Partition, NormalizedChannel};
+use super::base_partition::{Partition, NormalizedChannel, self};
 
 #[pyclass(unsendable)]
 pub struct PiecewiseConstant {
@@ -57,6 +57,10 @@ impl Partition for PiecewiseConstant {
         else {
             return - self.ddz0(1.0, w, v);
         }
+    }
+
+    fn get_output_type(&self) -> base_partition::OutputType {
+        return base_partition::OutputType::BinaryClassification;
     }
 
 }

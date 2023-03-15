@@ -7,7 +7,7 @@ use pyo3::prelude::*;
 
 use crate::gcmrust::utility::constants::*;
 use super::super::channels::base_channel::Channel;
-use super::base_partition::{Partition, NormalizedChannel};
+use super::base_partition::{Partition, NormalizedChannel, self};
 
 #[pyclass(unsendable)]
 pub struct PiecewiseAffine {
@@ -65,6 +65,11 @@ impl Partition for PiecewiseAffine {
         }
 
     }
+
+    fn get_output_type(&self) -> base_partition::OutputType {
+        return base_partition::OutputType::BinaryClassification;
+    }
+    
 
 }
 

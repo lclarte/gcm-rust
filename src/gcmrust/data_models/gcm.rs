@@ -3,6 +3,11 @@ use crate::gcmrust::utility::kappas;
 
 use super::base_prior::ParameterPrior;
 
+/*
+TODO : What's the difference between rho and teacher norm ? One is before the projection and the other one is after, but 
+which is which ? 
+ */
+
 pub struct GCMPrior {
     pub kappa1 : f64,
     pub kappastar : f64,

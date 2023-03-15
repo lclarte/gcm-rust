@@ -3,7 +3,7 @@ use std::f64::consts::PI;
 use pyo3::prelude::*;
 use statrs::function::*;
 
-use crate::gcmrust::{data_models::base_partition::Partition, utility::constants::*};
+use crate::gcmrust::{data_models::base_partition::{Partition, self}, utility::constants::*};
 
 static PSEUDO_BAYES_BOUND : f64 = INTEGRAL_BOUNDS;
 
@@ -68,6 +68,11 @@ impl Partition for PseudoBayesLogistic{
         let integrale = self.integrate_function(&| z : f64| -> f64 {ddz0_integrand(z, y, w, sqrt_v, self.beta)});
         return - z0 / v + integrale / v;
     }
+
+    fn get_output_type(&self) -> base_partition::OutputType {
+        return base_partition::OutputType::BinaryClassification;
+    }
+    
 }
 
 // part for the Python
