@@ -1,6 +1,7 @@
 use crate::gcmrust::data_models::base_prior;
 
 use super::base_prior::{PseudoBayesPrior, ParameterPrior};
+use core::f64::consts::PI;
 
 pub struct MatchingPrior {
     pub lambda : f64,
@@ -77,7 +78,8 @@ impl base_prior::ParameterPrior for MatchingPriorBayesOptimal {
     }
 
     fn psi_w(&self, mhat : f64, qhat : f64, vhat : f64) -> f64 {
-        panic!("Not implemented yet !!");
+        // rho is the inverse squared norm of the teacher so it's the inverse of beta_lambda
+        return - 0.5 * (1.0 / self.get_rho() + vhat).ln() + 0.5 * (mhat * mhat + qhat) / (1.0 / self.get_rho() + vhat);
     }
 
     fn update_overlaps(&self, mhat : f64, qhat : f64, vhat : f64) -> (f64, f64, f64) {
@@ -92,6 +94,6 @@ impl base_prior::ParameterPrior for MatchingPriorBayesOptimal {
 
 impl base_prior::PseudoBayesPrior for MatchingPriorBayesOptimal {
     fn get_log_prior_strength(&self) -> f64 {
-        return - self.get_rho().ln();
+        return - self.get_rho().ln() ;
     }
 }

@@ -4,8 +4,8 @@ use crate::gcmrust::utility::kappas;
 use super::base_prior::ParameterPrior;
 
 /*
-TODO : What's the difference between rho and teacher norm ? One is before the projection and the other one is after, but 
-which is which ? 
+Teacher norm : SQUARE norm of the teacher in the teacher space
+rho : SQUARE norm of the teacher in the projected space 
  */
 
 pub struct GCMPrior {
@@ -260,15 +260,19 @@ impl base_prior::ParameterPrior for GCMPriorBayesOptimal {
     fn update_overlaps(&self, mhat : f64, qhat : f64, vhat : f64) -> (f64, f64, f64) {
         let kk1 = self.kappa1.powi(2);
         let kkstar = self.kappastar.powi(2);
-        let q = self.get_gamma() * qhat * kappas::marcenko_pastur_integral(&|z : f64| -> f64 {(kk1 * z * self.teacher_norm / (kk1 * z + kkstar)).powi(2)  / (1.0 + qhat * (kk1 * z * self.teacher_norm / (kk1 * z + kkstar)))}, self.get_gamma());
+        let q = self.get_gamma() * qhat * kappas::marcenko_pastur_integral(&|z : f64| -> f64 {(kk1 * z * self.teacher_norm / (kk1 * z + kkstar)).powi(2) / (1.0 + qhat * (kk1 * z * self.teacher_norm / (kk1 * z + kkstar)))}, self.get_gamma());
 
         return (q, q, self.get_rho() - q);
     }
 
     fn psi_w(&self, mhat : f64, qhat : f64, vhat : f64) -> f64 {
-        let kk1 = self.kappa1.powi(2);
-        let kkstar = self.kappastar.powi(2);
-        let to_integrate = |z : f64| -> f64 { qhat * (kk1 * z) / (kkstar + kk1 * z) - (qhat + (kk1 * z + kkstar) / (kk1 * z)).ln()};
+        // TODO : Check the expression of this function, possibly the difference in the marginal likelihood comes from here.///
+        // NOTE : The eigenvalues of the prior are (kk1 * z) / (kk1 * z + kkstar) for z following the MP distribution
+        
+        // After double check, this expression seems to be correct (as long as teacher_norm = 1 at least, maybe not in general)
+        
+        let (kk1, kkstar) = (self.kappa1 * self.kappa1, self.kappastar * self.kappastar);
+        let to_integrate = |z : f64| -> f64 { qhat * (kk1 * z * self.teacher_norm) / (kkstar + kk1 * z) - (qhat + (kk1 * z + kkstar) / (kk1 * z * self.teacher_norm)).ln()};
         return 0.5 * self.get_gamma() * kappas::marcenko_pastur_integral_without_zero(&to_integrate, self.get_gamma());
     }
 
@@ -286,6 +290,8 @@ impl base_prior::PseudoBayesPrior for GCMPriorBayesOptimal {
         let kk1 = self.kappa1.powi(2);
         let kkstar = self.kappastar.powi(2);
         // Need to not include the 0, because the log witll not be determined
-        return kappas::marcenko_pastur_integral_without_zero(&|z : f64| -> f64 { z.ln() + kk1.ln() - 2.0 * (kk1 * z + kkstar).ln() }, self.get_gamma());
+        // below : why a factor 2 in front of the log ? it's the inverse of omega (not the square of the inverse ), so it should not be there
+        // return kappas::marcenko_pastur_integral_without_zero(&|z : f64| -> f64 { z.ln() + kk1.ln() - 2.0 * (kk1 * z + kkstar).ln() }, self.get_gamma());
+        return kappas::marcenko_pastur_integral_without_zero(&|z : f64| -> f64 { z.ln() + kk1.ln() - (kk1 * z + kkstar).ln() }, self.get_gamma());
     }
 }

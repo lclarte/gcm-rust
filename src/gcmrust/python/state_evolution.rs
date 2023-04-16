@@ -265,11 +265,11 @@ fn bayes_optimal_state_evolution_gcm(alpha : f64, delta : f64, gamma : f64, kapp
 
     let se =se::state_evolution::StateEvolution{ init_m : 0.01, init_q : 0.01, init_v : 0.99, se_tolerance : se_tolerance, relative_tolerance : relative_tolerance, verbose : verbose };
 
-    let channel = data_models::logit::Logit {
-        noise_variance : noise_variance
-    };
-    
     if data_model == "logit" {
+        let channel = data_models::logit::Logit {
+            noise_variance : noise_variance
+        };
+
         let data_model_partition = data_models::logit::Logit {
             noise_variance : noise_variance
         };
@@ -277,6 +277,10 @@ fn bayes_optimal_state_evolution_gcm(alpha : f64, delta : f64, gamma : f64, kapp
         return (m, q, v, mhat, qhat, vhat);
     }
     else {
+        let channel = data_models::probit::Probit {
+            noise_variance : noise_variance
+        };
+
         let data_model_partition = data_models::probit::Probit {
             noise_variance : noise_variance
         };

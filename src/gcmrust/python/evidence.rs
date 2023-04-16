@@ -71,8 +71,7 @@ fn pseudo_bayes_log_evidence_matching(m : f64, q : f64, v : f64, mhat : f64, qha
             noise_variance : delta
         };
         return utility::evidence::log_evidence(m, q, v, mhat, qhat, vhat, alpha, &student_partition, &true_model, &prior);
-    }
-}
+    }}
 
 #[pyfunction]
 fn bayes_optimal_log_evidence_gcm(m : f64, q : f64, v : f64, mhat : f64, qhat : f64, vhat : f64, alpha : f64, delta : f64, gamma : f64, kappa1 : f64, kappastar : f64, rho : f64, data_model : String) -> f64 {
@@ -110,30 +109,30 @@ fn bayes_optimal_log_evidence_gcm(m : f64, q : f64, v : f64, mhat : f64, qhat : 
 }
 
 #[pyfunction]
-fn bayes_optimal_log_evidence_matching(m : f64, q : f64, v : f64, mhat : f64, qhat : f64, vhat : f64, alpha : f64, beta : f64, delta : f64, lambda : f64, rho : f64, data_model : String) -> f64 {
+fn bayes_optimal_log_evidence_matching(m : f64, q : f64, v : f64, mhat : f64, qhat : f64, vhat : f64, alpha : f64, delta : f64, rho : f64, data_model : String) -> f64 {
     let prior = data_models::matching::MatchingPriorBayesOptimal {
         rho : rho,
     };
 
     if data_model == "logit" {
-        let student_partition = data_models::logit::Logit {
+        let channel = data_models::logit::Logit {
             noise_variance : delta
         };
 
         let true_model = data_models::logit::Logit {
             noise_variance : delta
         };
-        return utility::evidence::log_evidence(m, q, v, mhat, qhat, vhat, alpha, &student_partition, &true_model, &prior);
+        return utility::evidence::log_evidence(m, q, v, mhat, qhat, vhat, alpha, &channel, &true_model, &prior);
     }
     else {
 
-        let student_partition = data_models::logit::Logit {
+        let channel = data_models::logit::Logit {
             noise_variance : delta
         };
 
         let true_model = data_models::probit::Probit {
             noise_variance : delta
         };
-        return utility::evidence::log_evidence(m, q, v, mhat, qhat, vhat, alpha, &student_partition, &true_model, &prior);
+        return utility::evidence::log_evidence(m, q, v, mhat, qhat, vhat, alpha, &channel, &true_model, &prior);
     }
 }
