@@ -4,7 +4,7 @@ use crate::gcmrust::channels::base_channel;
 
 static PROXIMAL_TOLERANCE : f64 = 0.001;
 
-fn logistic_loss(z : f64) -> f64 {
+pub fn logistic_loss(z : f64) -> f64 {
     return (1.0 + (-z).exp()).ln();
 }
 
@@ -50,7 +50,6 @@ fn moreau_logistic_loss_second_derivative(x : f64, y : f64, omega : f64, v : f64
     return (1.0/ v) + logistic_loss_second_derivative(y, x);
 }
 
-
 fn iterative_proximal_logistic_loss(omega : f64, v : f64, y : f64) -> f64 {
     let mut x = omega;
     for i in 0..100 {
@@ -59,7 +58,7 @@ fn iterative_proximal_logistic_loss(omega : f64, v : f64, y : f64) -> f64 {
     return x;
 }
 
-fn proximal_logistic_loss(omega : f64, v : f64, y : f64) -> f64 {
+pub fn proximal_logistic_loss(omega : f64, v : f64, y : f64) -> f64 {
     
     // USES BRENT
 
