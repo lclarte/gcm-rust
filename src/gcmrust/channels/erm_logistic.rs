@@ -1,4 +1,5 @@
 use optimization::{Minimizer, GradientDescent, NumericalDifferentiation, Func};
+use peroxide::prelude::PowOps;
 use roots::{find_root_newton_raphson, SimpleConvergency, find_root_brent};
 use crate::gcmrust::channels::base_channel;
 
@@ -107,5 +108,34 @@ impl base_channel::Channel for ERMLogistic {
         let lambda_star  = proximal_logistic_loss(omega, v, y);
         let dlambda_star = 1.0 / (1.0 + v * logistic_loss_second_derivative(y, lambda_star));
         return (dlambda_star - 1.0) / v;
+    }
+}
+
+// Bernoulli resampling for the logistic channel
+
+
+pub struct BernoulliSubsamplingLogistic {
+    // define the proba of sampling 
+    pub proba : f64,
+}
+
+impl base_channel::Channel for BernoulliSubsamplingLogistic{
+    fn f0(&self, y : f64, omega : f64, v : f64) -> f64 {
+        let lambda_star  = proximal_logistic_loss(omega, v, y);
+
+        // recall that we compute the expectation of f_g = - \partial_omega Moreau = (prox - omega) / v
+        // but when p = 0 (no resample), f_g = 0 as prox = w
+        return self.proba * (lambda_star - omega) / v ;
+    }
+
+    fn df0(&self, y : f64, omega : f64, v : f64) -> f64 {
+        let lambda_star  = proximal_logistic_loss(omega, v, y);
+        let dlambda_star = 1.0 / (1.0 + v * logistic_loss_second_derivative(y, lambda_star));
+        return self.proba * (dlambda_star - 1.0) / v;
+    }
+
+    fn f0_square(&self, y : f64, omega : f64, v : f64) -> f64 {
+        let lambda_star  = proximal_logistic_loss(omega, v, y);
+        return self.proba * ((lambda_star - omega) / v).powi(2);
     }
 }

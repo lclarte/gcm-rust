@@ -48,7 +48,7 @@ pub fn integrate_for_qhat(m : f64, q : f64, v : f64, vstar : f64, channel : &imp
         for index in 0..2 {
             let y = ys[index];
             somme = somme + integral::integrate(
-                |xi : f64| -> f64 {(-xi.powi(2) / 2.0).exp() / (2.0 * PI).sqrt() * channel.f0(y, q.sqrt() * xi, v).powi(2) * data_model.z0(y, m / q.sqrt() * xi, vstar)}, 
+                |xi : f64| -> f64 {(-xi.powi(2) / 2.0).exp() / (2.0 * PI).sqrt() * channel.f0_square(y, q.sqrt() * xi, v) * data_model.z0(y, m / q.sqrt() * xi, vstar)}, 
                 (- INTEGRAL_BOUNDS, INTEGRAL_BOUNDS), integral::Integral::G30K61(GK_PARAMETER)
             );
         }

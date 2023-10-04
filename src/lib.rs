@@ -71,7 +71,6 @@ fn gcmpyo3(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<channels::pseudo_bayes_logistic::PseudoBayesLogistic>()?;
     m.add_class::<channels::normalized_pseudo_bayes_logistic::NormalizedPseudoBayesLogistic>()?;
     
-    
     m.add_class::<data_models::logit::Logit>()?;
     m.add_class::<data_models::probit::Probit>()?;
     m.add_class::<data_models::piecewise_constant::PiecewiseConstant>()?;
