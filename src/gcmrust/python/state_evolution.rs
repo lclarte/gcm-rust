@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 
 use crate::gcmrust::channels;
+use crate::gcmrust::channels::base_channel;
 use crate::gcmrust::utility;
 use crate::gcmrust::data_models;
 use crate::gcmrust::state_evolution as se;
@@ -28,9 +29,9 @@ pub fn state_evolution(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(erm_state_evolution_matching, m)?)?;
     m.add_function(wrap_pyfunction!(pseudo_bayes_state_evolution_matching, m)?)?;
     m.add_function(wrap_pyfunction!(bayes_optimal_state_evolution_matching, m)?)?;
-    // for subsampling
+    // for subsampling and resampling
     m.add_function(wrap_pyfunction!(erm_subsampling_state_evolution_matching, m)?)?;
-    
+    m.add_function(wrap_pyfunction!(erm_bootstrap_state_evolution_matching, m)?)?;
     
     // Functions for regression
     
@@ -466,6 +467,50 @@ fn erm_subsampling_state_evolution_matching(alpha : f64, delta : f64, lambda_ : 
     let channel = channels::erm_logistic::BernoulliSubsamplingLogistic {
         proba : proba
     };  
+
+    let prior = data_models::matching::MatchingPrior {
+        lambda : lambda_,
+        rho : rho
+    };
+
+    let se = se::state_evolution::StateEvolution { init_m : 0.01, init_q : 0.01, init_v : 0.99, se_tolerance : se_tolerance, relative_tolerance : relative_tolerance, verbose : verbose };
+
+    // for logit and probit, delta is the variance of the noise in the likelihood
+    // for the piecewise constant, delta is such that on [-delta, delta] the likelihood is 0.5
+    // for the piecewise affine, delta is such that on [-delta, delta] the likelihood goes from 0 to 1
+    let noise_variance = delta;
+    let (m, q, v, mhat, qhat, vhat) : (f64, f64, f64, f64, f64, f64);
+
+    // TODO : Learn Rust to simplify the code here
+    if data_model == "logit" {
+        let data_model_partition = data_models::logit::Logit {
+            noise_variance : noise_variance
+        };
+        (m, q, v, mhat, qhat, vhat) = se.state_evolution(alpha, &channel, &data_model_partition, &prior);
+    }
+    else if data_model == "probit" {
+        let data_model_partition = data_models::probit::Probit {
+            noise_variance : noise_variance
+        };
+        (m, q, v, mhat, qhat, vhat) = se.state_evolution(alpha, &channel, &data_model_partition, &prior);
+    }
+    else {
+        panic!("Not good data model!");
+    }
+    return (m, q, v, mhat, qhat, vhat);
+
+}
+
+#[pyfunction]
+fn erm_bootstrap_state_evolution_matching(alpha : f64, delta : f64, lambda_ : f64, rho : f64, data_model : String, se_tolerance : f64, relative_tolerance : bool, verbose : bool) -> (f64, f64, f64, f64, f64, f64) {
+    /*
+    Compute the performance of one resample with subsampling without replacement where a fraction "proba" of samples is resampled
+    TODO : Compute the correlation between several resamples
+     */
+    let channel = channels::erm_logistic::PoissonResamplingLogistric {
+        expected_resample : 1.0,
+        cutoff_expectation : 10
+    };
 
     let prior = data_models::matching::MatchingPrior {
         lambda : lambda_,
