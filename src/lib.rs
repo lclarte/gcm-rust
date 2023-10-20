@@ -75,6 +75,8 @@ fn gcmpyo3(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<data_models::probit::Probit>()?;
     m.add_class::<data_models::piecewise_constant::PiecewiseConstant>()?;
     m.add_class::<data_models::piecewise_affine::PiecewiseAffine>()?;
+    
+    m.add_class::<channels::erm_logistic::ERMLogistic>()?;
 
     m.add_function(wrap_pyfunction!(test, m)?)?;
 

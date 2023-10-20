@@ -1,7 +1,8 @@
-use optimization::{Minimizer, GradientDescent, NumericalDifferentiation, Func};
-use peroxide::prelude::PowOps;
-use roots::{find_root_newton_raphson, SimpleConvergency, find_root_brent};
+use roots::{SimpleConvergency, find_root_brent};
 use crate::gcmrust::channels::base_channel;
+use pyo3::prelude::*;
+
+use super::base_channel::Channel;
 
 static PROXIMAL_TOLERANCE : f64 = 0.001;
 
@@ -98,6 +99,7 @@ pub fn proximal_logistic_loss_with_weight(omega : f64, v : f64, y : f64, weight 
     };
 }
 
+#[pyclass(unsendable)]
 pub struct ERMLogistic {
 
 }
@@ -112,6 +114,22 @@ impl base_channel::Channel for ERMLogistic {
         let lambda_star  = proximal_logistic_loss(omega, v, y);
         let dlambda_star = 1.0 / (1.0 + v * logistic_loss_second_derivative(y, lambda_star));
         return (dlambda_star - 1.0) / v;
+    }
+}
+
+#[pymethods]
+impl ERMLogistic {
+    #[new]
+    pub fn new() -> PyResult<Self>{
+        Ok(ERMLogistic {  })
+    }
+
+    fn call_f0(&self, y : f64, w : f64, v : f64) -> f64 {
+        return self.f0(y, w, v);
+    }
+
+    fn call_df0(&self, y : f64, w : f64, v : f64) -> f64 {
+        return self.df0(y, w, v);
     }
 }
 
