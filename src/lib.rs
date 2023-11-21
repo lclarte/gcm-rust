@@ -3,9 +3,14 @@ use gcmrust::data_models;
 use pyo3::prelude::*;
 use pyo3::wrap_pymodule;
 
-use gcmrust::python::{state_evolution, evidence, utility};
+use gcmrust::python::{state_evolution, evidence, utility, state_evolution_laplace};
 
 pub mod gcmrust {
+    pub mod gamp{
+        pub mod gamp;
+        pub mod denoiser;
+    }
+
     pub mod state_evolution {
         pub mod integrals;
         pub mod state_evolution;
@@ -16,15 +21,19 @@ pub mod gcmrust {
         pub mod base_prior;
      
         pub mod gaussian;
+        // lasso.rs is for Lasso prior with Gaussian true prior
+        pub mod lasso;
+        // matching_lasso.rs is for Lasso with Laplace prior
+        pub mod matching_lasso;
+        pub mod bo_laplace;
+        // priors in the matching gaussian-gaussian case
+        pub mod matching;
+        pub mod gcm;
 
         pub mod logit;
         pub mod probit;
         pub mod piecewise_affine;
-        pub mod piecewise_constant;
-        
-        pub mod matching;
-        pub mod gcm;
-        
+        pub mod piecewise_constant;   
     }
 
     pub mod utility {
@@ -46,7 +55,9 @@ pub mod gcmrust {
     pub mod python {
         pub mod evidence;
         pub mod state_evolution;
+        pub mod state_evolution_laplace;
         pub mod utility;
+        pub mod gamp;
     }
 
 }
@@ -67,6 +78,7 @@ fn gcmpyo3(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(utility::utility))?;
     m.add_wrapped(wrap_pymodule!(evidence::evidence))?;
     m.add_wrapped(wrap_pymodule!(state_evolution::state_evolution))?;
+    m.add_wrapped(wrap_pymodule!(state_evolution_laplace::state_evolution_laplace))?;
 
     m.add_class::<channels::pseudo_bayes_logistic::PseudoBayesLogistic>()?;
     m.add_class::<channels::normalized_pseudo_bayes_logistic::NormalizedPseudoBayesLogistic>()?;
