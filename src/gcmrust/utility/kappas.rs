@@ -3,6 +3,9 @@ use peroxide::numerical::*;
 use crate::gcmrust::utility::constants::*;
 
 pub fn get_kappas_from_activation(activation : &String) -> (f64, f64) {
+    /*
+    
+     */
     return match activation.as_str() {
         "erf" => (2.0 / (3.0 * PI).sqrt(), 0.200364),
         "relu" => (0.5, ((PI - 2.0)/(4.0 * PI)).sqrt()),

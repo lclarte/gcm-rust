@@ -27,9 +27,16 @@ impl base_channel::ChannelWithExplicitHatOverlapUpdate for RidgeChannel {
      */
     fn update_hatoverlaps(&self, m : f64, q : f64, v : f64) -> (f64, f64, f64) {        
         // normalement : mhat est mult. par self.gamma.sqrt()
-        let mhat = self.alpha / (self.student_noise_variance + v);
-        let qhat = self.alpha * (self.rho + self.teacher_noise_variance + q - 2.0 * m ) / (self.student_noise_variance + v).powi(2);
-        let vhat = self.alpha / (self.student_noise_variance + v);
+        // OLD VERSION : 
+        // let mhat = self.alpha / (self.student_noise_variance + v);
+        // let qhat = self.alpha * (self.rho + self.teacher_noise_variance + q - 2.0 * m ) / (self.student_noise_variance + v).powi(2);
+        // let vhat = self.alpha / (self.student_noise_variance + v);
+
+        let ratio : f64 = 1.0 / (1.0 + v);
+        
+        let mhat = self.alpha * ratio;
+        let qhat = self.alpha * ratio.powi(2) * (self.rho + self.teacher_noise_variance + q - 2.0 * m);
+        let vhat = self.alpha * ratio;
 
         return (mhat, qhat, vhat);
     }

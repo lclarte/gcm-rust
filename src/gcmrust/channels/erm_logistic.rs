@@ -4,12 +4,9 @@ use pyo3::prelude::*;
 
 use super::base_channel::Channel;
 
-static PROXIMAL_TOLERANCE : f64 = 0.001;
-
 pub fn logistic_loss(z : f64) -> f64 {
     return (1.0 + (-z).exp()).ln();
 }
-
 
 fn logistic_loss_derivative(y : f64, z : f64) -> f64 {
     if y * z > 0.0 {
@@ -24,9 +21,13 @@ fn logistic_loss_derivative(y : f64, z : f64) -> f64 {
 }
 
 fn logistic_loss_second_derivative(y : f64, x : f64) -> f64 {
+    /*
+    The expression of the second derivative of the logistic loss(y, x) is simply 
+    sigmoid'(y * x) which is equal to 0.25 / cosh(y * x / 2)^2
+    */
     if (y * x).abs() > 500.0 {
         if y * x > 0.0 { return 1.0 / 4.0 * (-y * x).exp(); }
-        else { return 1.0 / 4.0 * (y * x).exp(); }       
+        else { return 1.0 / 4.0 * (y * x).exp(); }
     }
     else {
         return 1.0 / (4.0 * (y * x / 2.0).cosh().powi(2));

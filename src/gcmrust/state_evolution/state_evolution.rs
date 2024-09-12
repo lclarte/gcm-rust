@@ -40,7 +40,7 @@ impl StateEvolution {
             (prev_m, prev_q, prev_v, prev_mhat, prev_qhat, prev_vhat) = (m, q, v, mhat, qhat, vhat);
             (m, q, v, mhat, qhat, vhat) = iterate_se(m, q, v, alpha, channel, data_model, prior);
     
-            if m == f64::NAN || q == f64::NAN || v == f64::NAN {
+            if m.is_nan() || q.is_nan() || v.is_nan() {
                 println!("One of the overlaps is NAN");
                 return (prev_m, prev_q, prev_v, prev_mhat, prev_qhat, prev_vhat);
             }
@@ -136,7 +136,7 @@ impl StateEvolutionExplicitOverlapUpdate {
             // update overlap
             (m, q, v) = prior.update_overlaps(mhat, qhat, vhat);
             
-            if m == f64::NAN || q == f64::NAN || v == f64::NAN {
+            if m.is_nan() || q.is_nan() || v.is_nan() {
                 println!("One of the overlaps is NAN");
                 return (prev_m, prev_q, prev_v, prev_mhat, prev_qhat, prev_vhat);
             }
