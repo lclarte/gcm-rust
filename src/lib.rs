@@ -6,11 +6,6 @@ use pyo3::wrap_pymodule;
 use gcmrust::python::{state_evolution, evidence, utility, state_evolution_laplace};
 
 pub mod gcmrust {
-    pub mod gamp{
-        pub mod gamp;
-        pub mod denoiser;
-    }
-
     pub mod state_evolution {
         pub mod integrals;
         pub mod state_evolution;
@@ -57,7 +52,6 @@ pub mod gcmrust {
         pub mod state_evolution;
         pub mod state_evolution_laplace;
         pub mod utility;
-        pub mod gamp;
     }
 
 }
